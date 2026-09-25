@@ -1,180 +1,314 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portail BDE EHES</title>
+  <title>Portail Officiel BDE EHES</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #800020; /* Bordeaux */
+      --primary-dark: #5c0017;
       --secondary: #D4AF37; /* Or */
-      --bg: #f4f6f9;
-      --text: #333;
+      --secondary-light: #f3e5ab;
+      --bg: #f8f9fa;
+      --card-bg: #ffffff;
+      --text: #2c3e50;
+      --light-text: #7f8c8d;
     }
+
+    * {
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+    }
+
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Poppins', sans-serif;
       margin: 0;
       padding: 0;
       background-color: var(--bg);
       color: var(--text);
     }
+
+    /* EN-TÊTE */
     header {
-      background-color: var(--primary);
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
       color: white;
-      padding: 1rem;
+      padding: 1.2rem 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 15px rgba(128, 0, 32, 0.3);
     }
-    header img {
-      height: 40px;
-      margin-right: 10px;
-    }
+
     .brand {
       display: flex;
       align-items: center;
+      gap: 12px;
     }
 
-    /* BARRE DE NAVIGATION PAR ONGLETS */
+    .brand img {
+      height: 48px;
+      border-radius: 6px;
+      background: #fff;
+      padding: 2px;
+    }
+
+    .brand h1 {
+      font-size: 1.3rem;
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    #userStatus {
+      font-size: 0.85rem;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 6px 14px;
+      border-radius: 20px;
+      backdrop-filter: blur(5px);
+    }
+
+    /* NAVIGATION PAR ONGLETS */
     nav.tabs {
       display: flex;
-      background-color: #600018;
+      background-color: #fff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
       overflow-x: auto;
+      sticky: top;
+      z-index: 100;
     }
+
     nav.tabs button {
       flex: 1;
-      padding: 12px 10px;
+      min-width: 100px;
+      padding: 14px 10px;
       background: none;
       border: none;
-      color: white;
-      font-weight: bold;
+      color: var(--light-text);
+      font-weight: 600;
+      font-size: 0.9rem;
       border-bottom: 3px solid transparent;
       cursor: pointer;
       border-radius: 0;
       margin: 0;
       white-space: nowrap;
     }
+
     nav.tabs button.active {
+      color: var(--primary);
       border-bottom: 3px solid var(--secondary);
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: #fff6f8;
     }
 
     .container {
       max-width: 900px;
-      margin: 20px auto;
+      margin: 25px auto;
       padding: 0 15px;
     }
+
     .card {
-      background: white;
-      padding: 20px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      border-top: 4px solid var(--primary);
+      background: var(--card-bg);
+      padding: 25px;
+      margin-bottom: 25px;
+      border-radius: 12px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+      border-top: 5px solid var(--primary);
     }
+
+    /* BANNIÈRE D'ACCUEIL */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(128,0,32,0.95), rgba(92,0,23,0.9)), url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=80');
+      background-size: cover;
+      background-position: center;
+      color: white;
+      padding: 30px 20px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 25px rgba(128,0,32,0.25);
+    }
+
+    .hero-banner h2 {
+      color: var(--secondary) !important;
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+    }
+
     h2, h3 {
       color: var(--primary);
       margin-top: 0;
+      font-weight: 600;
     }
+
     input, select, textarea, button {
       width: 100%;
-      padding: 10px;
+      padding: 12px 15px;
       margin: 8px 0;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
+      border: 1px solid #e1e8ed;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.95rem;
     }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+    }
+
     button {
       background-color: var(--primary);
       color: white;
       border: none;
-      font-weight: bold;
+      font-weight: 600;
       cursor: pointer;
+      box-shadow: 0 4px 10px rgba(128, 0, 32, 0.2);
     }
+
     button:hover {
-      background-color: #600018;
+      background-color: var(--primary-dark);
+      transform: translateY(-1px);
     }
+
     .btn-gold {
       background-color: var(--secondary);
-      color: #333;
+      color: #2c3e50;
+      box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);
     }
+
     .btn-gold:hover {
-      background-color: #c09e2e;
+      background-color: #b8962d;
     }
+
     .hidden {
       display: none !important;
     }
+
+    /* STATISTIQUES */
     .stat-box {
       display: inline-block;
       width: 48%;
-      background: #f0f0f0;
-      padding: 15px;
-      border-radius: 6px;
+      background: #fdfbf7;
+      border: 1px solid var(--secondary-light);
+      padding: 20px;
+      border-radius: 10px;
       text-align: center;
       margin-bottom: 10px;
-      box-sizing: border-box;
     }
+
     .stat-number {
-      font-size: 1.8rem;
-      font-weight: bold;
+      font-size: 2rem;
+      font-weight: 700;
       color: var(--primary);
     }
+
+    /* FIL D'ACTUALITÉS */
     .feed-item {
-      border-bottom: 1px solid #eee;
-      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+      padding: 18px 0;
     }
+
     .feed-item:last-child {
       border-bottom: none;
     }
-    .feed-date {
-      font-size: 0.8rem;
-      color: #777;
-    }
-    .feed-media {
-      max-width: 100%;
-      max-height: 350px;
-      border-radius: 6px;
-      margin-top: 10px;
-      display: block;
-    }
-    .drive-link {
-      display: inline-block;
-      margin-top: 5px;
-      padding: 6px 12px;
-      background-color: var(--secondary);
-      color: #000;
-      text-decoration: none;
-      border-radius: 4px;
-      font-size: 0.9rem;
-      font-weight: bold;
+
+    .feed-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
     }
 
-    /* ESPACE DISCUSSION */
-    .chat-box {
-      max-height: 350px;
+    .feed-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .feed-date {
+      font-size: 0.8rem;
+      color: var(--light-text);
+      background: #f0f0f0;
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+
+    .feed-media {
+      max-width: 100%;
+      max-height: 400px;
+      border-radius: 8px;
+      margin-top: 12px;
+      display: block;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .drive-link {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 8px 16px;
+      background-color: var(--secondary);
+      color: #2c3e50;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    /* CHAT, SUGGESTIONS & INSCRITS */
+    .chat-box, .suggestion-box, .students-box {
+      max-height: 380px;
       overflow-y: auto;
-      border: 1px solid #ddd;
-      padding: 10px;
-      border-radius: 6px;
-      background: #fafafa;
-      margin-bottom: 10px;
+      border: 1px solid #edf2f7;
+      padding: 15px;
+      border-radius: 10px;
+      background: #fcfcfc;
+      margin-bottom: 15px;
     }
-    .chat-msg {
-      margin-bottom: 10px;
-      padding: 8px 12px;
+
+    .chat-msg, .suggestion-item {
+      margin-bottom: 12px;
+      padding: 12px;
       background: #fff;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      border-left: 3px solid var(--primary);
     }
+
     .chat-msg strong {
       color: var(--primary);
     }
+
     .chat-time {
       font-size: 0.75rem;
-      color: #999;
+      color: var(--light-text);
       float: right;
+    }
+
+    .level-group {
+      margin-bottom: 15px;
+      background: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+      border-top: 3px solid var(--secondary);
+    }
+
+    .level-title {
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    .student-item {
+      padding: 6px 0;
+      border-bottom: 1px dashed #eee;
+      font-size: 0.88rem;
+    }
+
+    .student-item:last-child {
+      border-bottom: none;
     }
   </style>
 </head>
@@ -184,28 +318,29 @@
     <div class="brand">
       <img src="logo_ehes.png" alt="EHES" onerror="this.style.display='none'">
       <img src="logo_bde.png" alt="BDE" onerror="this.style.display='none'">
-      <h1 style="font-size: 1.2rem; margin: 0;">BDE EHES</h1>
+      <h1>BDE EHES</h1>
     </div>
-    <div id="userStatus" style="font-size:0.9rem;"></div>
+    <div id="userStatus">Visiteur</div>
   </header>
 
-  <!-- NAVIGATION PAR ONGLETS -->
+  <!-- NAVIGATION -->
   <nav class="tabs">
     <button class="tab-btn active" onclick="switchTab('homeTab')">📢 Accueil</button>
     <button class="tab-btn" onclick="switchTab('coursesTab')">📚 Cours & TDs</button>
-    <button class="tab-btn" onclick="switchTab('chatTab')">💬 Discussion</button>
+    <button class="tab-btn" onclick="switchTab('chatTab')">💬 Forum</button>
+    <button class="tab-btn" onclick="switchTab('suggestTab')">💡 Suggestions</button>
     <button class="tab-btn" onclick="switchTab('adminTab')">⚙️ Admin</button>
   </nav>
 
   <div class="container">
 
-    <!-- FORMULAIRE AUTHENTIFICATION (S'AFFICHE SI NON CONNECTE) -->
+    <!-- CONNEXION / INSCRIPTION -->
     <div id="authSection" class="card">
-      <h2 id="authTitle">Connexion Étudiant</h2>
+      <h2 id="authTitle">Espace Connexion</h2>
       
       <form id="authForm">
         <div id="registerFields" class="hidden">
-          <input type="text" id="authName" placeholder="Nom complet">
+          <input type="text" id="authName" placeholder="Nom et Prénom">
           <select id="authLevel">
             <option value="L1">Licence 1 (L1)</option>
             <option value="L2">Licence 2 (L2)</option>
@@ -221,79 +356,105 @@
         <button type="submit" id="authSubmitBtn">Se connecter</button>
       </form>
 
-      <p style="text-align: center; margin-top: 15px;">
-        <span id="toggleAuthText">Pas encore de compte ?</span>
-        <a href="#" id="toggleAuthLink" style="color: var(--primary); font-weight: bold;">S'inscrire</a>
+      <p style="text-align: center; margin-top: 15px; font-size: 0.9rem;">
+        <span id="toggleAuthText">Nouveau sur le portail ?</span>
+        <a href="#" id="toggleAuthLink" style="color: var(--primary); font-weight: 600; text-decoration: none;">Créer un compte</a>
       </p>
     </div>
 
-    <!-- ONGLET 1 : ACCUEIL / ANNONCES DE LA SEMAINE -->
-    <div id="homeTab" class="tab-content card">
-      <h2>Annonces de la semaine</h2>
-      <p id="welcomeMsg"></p>
-      <div id="announcementsList">
-        <!-- Les annonces récentes s'affichent ici -->
+    <!-- ONGLET 1 : ACCUEIL -->
+    <div id="homeTab" class="tab-content">
+      <div class="hero-banner">
+        <h2>Bienvenue sur le Portail BDE EHES</h2>
+        <p id="welcomeMsg" style="margin: 0; font-size: 1rem; opacity: 0.9;">Votre plateforme académique & vie étudiante</p>
+      </div>
+
+      <div class="card">
+        <h2>📢 Annonces & Actualités récentes</h2>
+        <div id="announcementsList">
+          <!-- Publications -->
+        </div>
       </div>
     </div>
 
-    <!-- ONGLET 2 : COURS ET TDS (Restreint par niveau) -->
+    <!-- ONGLET 2 : COURS ET TDS -->
     <div id="coursesTab" class="tab-content card hidden">
-      <h2>Vos Cours & TDs (<span id="userLevelDisplay">Non connecté</span>)</h2>
+      <h2>📚 Ressources Académiques (<span id="userLevelDisplay">Non connecté</span>)</h2>
+      <p style="color: var(--light-text); font-size: 0.9rem;">Accédez aux supports de cours et travaux dirigés de votre niveau.</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 15px 0;">
       <div id="coursesList">
-        <!-- Les cours accessibles s'affichent ici -->
+        <!-- Liste des cours -->
       </div>
     </div>
 
-    <!-- ONGLET 3 : DISCUSSION EN TEMPS RÉEL -->
+    <!-- ONGLET 3 : FORUM DISCUSSION -->
     <div id="chatTab" class="tab-content card hidden">
-      <h2>Espace de Discussion</h2>
+      <h2>💬 Forum de Discussion</h2>
       <div id="chatGuestWarning" class="hidden">
-        <p>Veuillez vous connecter pour participer aux discussions.</p>
+        <p style="color: var(--light-text);">Connectez-vous pour échanger avec les étudiants.</p>
       </div>
       <div id="chatContainer">
-        <div class="chat-box" id="chatBox">
-          <!-- Les messages s'affichent ici -->
-        </div>
+        <div class="chat-box" id="chatBox"></div>
         <form id="chatForm">
           <input type="text" id="chatInput" placeholder="Écrivez votre message..." required>
-          <button type="submit">Envoyer</button>
+          <button type="submit">Envoyer le message</button>
         </form>
       </div>
     </div>
 
-    <!-- ONGLET 4 : PANNEAU D'ADMINISTRATION -->
+    <!-- ONGLET 4 : BOÎTE À SUGGESTIONS -->
+    <div id="suggestTab" class="tab-content card hidden">
+      <h2>💡 Boîte à Suggestions</h2>
+      <p style="color: var(--light-text); font-size: 0.9rem;">Une idée pour améliorer la vie étudiante ? Partagez-la directement avec le BDE !</p>
+      
+      <form id="suggestForm" style="margin-top: 15px;">
+        <input type="text" id="suggestTitle" placeholder="Sujet / Titre de la suggestion" required>
+        <textarea id="suggestContent" rows="4" placeholder="Expliquez votre idée en détails..." required></textarea>
+        <label style="font-size: 0.85rem; color: var(--light-text); display: block; margin-top: 5px;">
+          <input type="checkbox" id="suggestAnon" style="width: auto; margin-right: 5px;"> Soumettre de façon anonyme
+        </label>
+        <button type="submit" class="btn-gold" style="margin-top: 10px;">Envoyer au BDE</button>
+      </form>
+    </div>
+
+    <!-- ONGLET 5 : ADMIN -->
     <div id="adminTab" class="tab-content card hidden">
-      <h2>Administration BDE</h2>
+      <h2>⚙️ Administration BDE</h2>
       <div id="adminAuth">
         <input type="password" id="adminPassInput" placeholder="Mot de passe Administrateur">
-        <button id="adminLoginBtn" class="btn-gold">Accéder au Panneau Admin</button>
+        <button id="adminLoginBtn" class="btn-gold">Se connecter en Admin</button>
       </div>
 
       <div id="adminPanel" class="hidden">
-        <h3>Statistiques de la plateforme</h3>
+        <h3>Aperçu de la plateforme</h3>
         <div class="stat-box">
           <div class="stat-number" id="statInscrits">0</div>
-          Inscrits au total
+          Étudiants Inscrits
         </div>
         <div class="stat-box">
           <div class="stat-number" id="statConnectes">0</div>
-          Connexions aujourd'hui
+          Visites aujourd'hui
         </div>
 
-        <hr style="margin: 20px 0;">
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
 
-        <h3>Publier une annonce (Texte, Photo ou Vidéo)</h3>
+        <h3>👥 Liste des Étudiants Inscrits (par niveau)</h3>
+        <div class="students-box" id="adminStudentsList">
+          <!-- La liste triée par niveau s'affiche ici -->
+        </div>
+
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+
+        <h3>📢 Publier une Annonce</h3>
         <input type="text" id="postTitle" placeholder="Titre de l'annonce">
-        <textarea id="postContent" placeholder="Contenu de l'annonce"></textarea>
-        
-        <label style="font-size:0.85rem; font-weight:bold; color:#555;">Ajouter une photo ou vidéo depuis votre téléphone :</label>
+        <textarea id="postContent" rows="3" placeholder="Contenu de l'annonce..."></textarea>
+        <label style="font-size: 0.85rem; font-weight: 600;">Joindre Photo ou Vidéo :</label>
         <input type="file" id="postFileInput" accept="image/*,video/*">
+        <button id="publishPostBtn">Publier (Valide 7 jours)</button>
 
-        <button id="publishPostBtn">Publier l'annonce (Visible 7 jours)</button>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
 
-        <hr style="margin: 20px 0;">
-
-        <h3>Ajouter un cours / TD</h3>
+        <h3>📚 Ajouter un Cours / TD</h3>
         <select id="courseLevel">
           <option value="L1">Licence 1 (L1)</option>
           <option value="L2">Licence 2 (L2)</option>
@@ -301,46 +462,53 @@
           <option value="M1">Master 1 (M1)</option>
           <option value="M2">Master 2 (M2)</option>
         </select>
-        <input type="text" id="courseTitle" placeholder="Titre du cours / TD">
-        <input type="url" id="courseDriveUrl" placeholder="Lien Google Drive du cours">
+        <input type="text" id="courseTitle" placeholder="Nom de la matière / TD">
+        <input type="url" id="courseDriveUrl" placeholder="Lien Google Drive du document">
         <button id="publishCourseBtn" class="btn-gold">Ajouter le cours</button>
+
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+
+        <h3>💡 Suggestions reçues des étudiants</h3>
+        <div class="suggestion-box" id="adminSuggestionsList"></div>
       </div>
     </div>
 
-    <!-- BOUTON SE DECONNECTER (S'affiche quand connecté) -->
+    <!-- DECONNEXION -->
     <div id="logoutSection" class="hidden" style="text-align:center; margin-top:15px;">
-      <button id="logoutBtn" style="background-color: #555; width: auto; padding: 8px 20px;">Se déconnecter</button>
+      <button id="logoutBtn" style="background-color: #666; width: auto; padding: 10px 25px; border-radius: 20px;">Se déconnecter</button>
     </div>
 
   </div>
 
   <script>
-    // --- STOCKAGE LOCAL ---
+    // DONNÉES LOCALES
     let users = JSON.parse(localStorage.getItem('bde_users')) || [];
     let posts = JSON.parse(localStorage.getItem('bde_posts')) || [];
     let courses = JSON.parse(localStorage.getItem('bde_courses')) || [];
     let logins = JSON.parse(localStorage.getItem('bde_logins')) || [];
     let messages = JSON.parse(localStorage.getItem('bde_messages')) || [];
+    let suggestions = JSON.parse(localStorage.getItem('bde_suggestions')) || [];
     let currentUser = JSON.parse(localStorage.getItem('bde_current_user')) || null;
 
     let isRegisterMode = false;
 
-    // Suppression automatique des annonces de plus de 7 jours
+    // Purge auto des annonces (> 7 jours)
     const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    posts = posts.filter(p => (now - p.timestamp) < ONE_WEEK_MS);
+    posts = posts.filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
     localStorage.setItem('bde_posts', JSON.stringify(posts));
 
-    // --- NAVIGATION PAR ONGLETS ---
+    // CHANGER D'ONGLET
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
       document.getElementById(tabId).classList.remove('hidden');
-      event.currentTarget.classList.add('active');
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+      }
     }
 
-    // --- ELEMENTS DU DOM ---
+    // ÉLÉMENTS DOM
     const authSection = document.getElementById('authSection');
     const authForm = document.getElementById('authForm');
     const authTitle = document.getElementById('authTitle');
@@ -357,22 +525,22 @@
     const logoutSection = document.getElementById('logoutSection');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // --- GESTION INSCRIPTION / CONNEXION ---
+    // INSCRIPTION / CONNEXION
     toggleAuthLink.addEventListener('click', (e) => {
       e.preventDefault();
       isRegisterMode = !isRegisterMode;
       if (isRegisterMode) {
-        authTitle.innerText = "Inscription Étudiant";
+        authTitle.innerText = "Créer un compte Étudiant";
         registerFields.classList.remove('hidden');
         authSubmitBtn.innerText = "S'inscrire";
-        toggleAuthText.innerText = "Déjà un compte ?";
+        toggleAuthText.innerText = "Déjà inscrit ?";
         toggleAuthLink.innerText = "Se connecter";
       } else {
-        authTitle.innerText = "Connexion Étudiant";
+        authTitle.innerText = "Espace Connexion";
         registerFields.classList.add('hidden');
         authSubmitBtn.innerText = "Se connecter";
-        toggleAuthText.innerText = "Pas encore de compte ?";
-        toggleAuthLink.innerText = "S'inscrire";
+        toggleAuthText.innerText = "Nouveau sur le portail ?";
+        toggleAuthLink.innerText = "Créer un compte";
       }
     });
 
@@ -386,7 +554,7 @@
         const level = document.getElementById('authLevel').value;
 
         if (users.find(u => u.email === email)) {
-          alert("Un compte existe déjà avec cette adresse email !");
+          alert("Un compte existe déjà avec cet e-mail.");
           return;
         }
 
@@ -406,7 +574,7 @@
           registerLogin();
           checkUserSession();
         } else {
-          alert("Email ou mot de passe incorrect.");
+          alert("E-mail ou mot de passe incorrect.");
         }
       }
     });
@@ -428,7 +596,7 @@
         authSection.classList.add('hidden');
         logoutSection.classList.remove('hidden');
         userStatus.innerText = `👤 ${currentUser.name} (${currentUser.level})`;
-        welcomeMsg.innerHTML = `Bienvenue <strong>${currentUser.name}</strong> ! Voici les actualités de la semaine.`;
+        welcomeMsg.innerText = `Ravi de vous revoir, ${currentUser.name} !`;
         userLevelDisplay.innerText = currentUser.level;
 
         document.getElementById('chatContainer').classList.remove('hidden');
@@ -436,8 +604,8 @@
       } else {
         authSection.classList.remove('hidden');
         logoutSection.classList.add('hidden');
-        userStatus.innerText = "Non connecté";
-        welcomeMsg.innerText = "Connectez-vous pour accéder à vos cours et participer au forum.";
+        userStatus.innerText = "Visiteur";
+        welcomeMsg.innerText = "Votre plateforme académique & vie étudiante";
         userLevelDisplay.innerText = "Non connecté";
 
         document.getElementById('chatContainer').classList.add('hidden');
@@ -448,7 +616,7 @@
       renderChat();
     }
 
-    // --- CONVERSION LIEN GOOGLE DRIVE TELECHARGEMENT ---
+    // FORMAT DRIVE
     function formatDriveLink(url) {
       if (url.includes('drive.google.com') && url.includes('/d/')) {
         const fileId = url.split('/d/')[1].split('/')[0];
@@ -457,35 +625,35 @@
       return url;
     }
 
-    // --- AFFICHAGE DES COURS ---
+    // COURS
     function renderCourses() {
       if (!currentUser) {
-        coursesList.innerHTML = '<p>Veuillez vous connecter pour voir vos cours.</p>';
+        coursesList.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
         return;
       }
       const userCourses = courses.filter(c => c.level === currentUser.level);
-      coursesList.innerHTML = userCourses.length ? '' : '<p>Aucun cours disponible pour votre niveau.</p>';
+      coursesList.innerHTML = userCourses.length ? '' : '<p style="color:var(--light-text);">Aucun cours mis en ligne pour votre niveau.</p>';
       userCourses.forEach(c => {
         const downloadUrl = formatDriveLink(c.url);
         coursesList.innerHTML += `
-          <div style="background:#f9f9f9; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:4px;">
+          <div style="background:#fdfbf7; padding:15px; margin-bottom:12px; border-left:4px solid var(--secondary); border-radius:8px;">
             <strong>${c.title}</strong><br>
-            <a href="${downloadUrl}" class="drive-link" target="_blank" download>Télécharger le fichier</a>
+            <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Télécharger le document</a>
           </div>
         `;
       });
     }
 
-    // --- AFFICHAGE DES ANNONCES ---
+    // ANNONCES
     function renderAnnouncements() {
-      announcementsList.innerHTML = posts.length ? '' : '<p>Aucune annonce cette semaine.</p>';
+      announcementsList.innerHTML = posts.length ? '' : '<p style="color:var(--light-text);">Aucune nouvelle annonce pour le moment.</p>';
       posts.forEach(p => {
         const dateStr = new Date(p.timestamp).toLocaleDateString();
         let mediaHtml = '';
 
         if (p.mediaData) {
           if (p.mediaType.startsWith('image/')) {
-            mediaHtml = `<img src="${p.mediaData}" class="feed-media" alt="Image annonce">`;
+            mediaHtml = `<img src="${p.mediaData}" class="feed-media">`;
           } else if (p.mediaType.startsWith('video/')) {
             mediaHtml = `<video src="${p.mediaData}" controls class="feed-media"></video>`;
           }
@@ -493,15 +661,18 @@
 
         announcementsList.innerHTML += `
           <div class="feed-item">
-            <strong>${p.title}</strong> <span class="feed-date">(${dateStr})</span>
-            <p>${p.content}</p>
+            <div class="feed-header">
+              <span class="feed-title">${p.title}</span>
+              <span class="feed-date">${dateStr}</span>
+            </div>
+            <p style="margin: 5px 0;">${p.content}</p>
             ${mediaHtml}
           </div>
         `;
       });
     }
 
-    // --- ESPACE DISCUSSION ---
+    // FORUM
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
     const chatBox = document.getElementById('chatBox');
@@ -527,20 +698,43 @@
     });
 
     function renderChat() {
-      chatBox.innerHTML = messages.length ? '' : '<p style="color:#888;">Aucun message. Soyez le premier à discuter !</p>';
+      chatBox.innerHTML = messages.length ? '' : '<p style="color:var(--light-text);">Aucun message pour le moment.</p>';
       messages.forEach(m => {
         chatBox.innerHTML += `
           <div class="chat-msg">
             <span class="chat-time">${m.time}</span>
-            <strong>${m.sender} (${m.level}) :</strong>
-            <div>${m.text}</div>
+            <strong>${m.sender} (${m.level})</strong>
+            <div style="margin-top: 3px;">${m.text}</div>
           </div>
         `;
       });
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // --- PANNEAU D'ADMINISTRATION ---
+    // SUGGESTIONS
+    document.getElementById('suggestForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('suggestTitle').value.trim();
+      const content = document.getElementById('suggestContent').value.trim();
+      const isAnon = document.getElementById('suggestAnon').checked;
+
+      const author = (isAnon || !currentUser) ? "Anonyme" : `${currentUser.name} (${currentUser.level})`;
+
+      suggestions.unshift({
+        author,
+        title,
+        content,
+        date: new Date().toLocaleDateString()
+      });
+
+      localStorage.setItem('bde_suggestions', JSON.stringify(suggestions));
+      alert("Votre suggestion a bien été envoyée au BDE ! Merci.");
+      document.getElementById('suggestTitle').value = '';
+      document.getElementById('suggestContent').value = '';
+      document.getElementById('suggestAnon').checked = false;
+    });
+
+    // ADMIN
     const adminAuth = document.getElementById('adminAuth');
     const adminPanel = document.getElementById('adminPanel');
     const adminPassInput = document.getElementById('adminPassInput');
@@ -551,6 +745,8 @@
         adminAuth.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         loadAdminStats();
+        renderAdminStudents();
+        renderAdminSuggestions();
       } else {
         alert("Mot de passe incorrect.");
       }
@@ -563,7 +759,46 @@
       document.getElementById('statConnectes').innerText = todayLogins;
     }
 
-    // Publication annonce avec fichier Photo/Vidéo
+    // Affichage des inscrits triés par niveau
+    function renderAdminStudents() {
+      const container = document.getElementById('adminStudentsList');
+      if (!users.length) {
+        container.innerHTML = '<p style="color:var(--light-text);">Aucun étudiant inscrit pour le moment.</p>';
+        return;
+      }
+
+      const levels = ['L1', 'L2', 'L3', 'M1', 'M2'];
+      let html = '';
+
+      levels.forEach(lvl => {
+        const list = users.filter(u => u.level === lvl);
+        if (list.length > 0) {
+          html += `<div class="level-group">`;
+          html += `<div class="level-title">🎓 Niveau ${lvl} (${list.length})</div>`;
+          list.forEach(st => {
+            html += `<div class="student-item">👤 <strong>${st.name}</strong> — <span style="color:var(--light-text);">${st.email}</span></div>`;
+          });
+          html += `</div>`;
+        }
+      });
+
+      container.innerHTML = html || '<p style="color:var(--light-text);">Aucun étudiant enregistré.</p>';
+    }
+
+    function renderAdminSuggestions() {
+      const container = document.getElementById('adminSuggestionsList');
+      container.innerHTML = suggestions.length ? '' : '<p style="color:var(--light-text);">Aucune suggestion reçue.</p>';
+      suggestions.forEach(s => {
+        container.innerHTML += `
+          <div class="suggestion-item">
+            <strong>${s.title}</strong> <small>par ${s.author} - ${s.date}</small>
+            <p style="margin: 5px 0 0 0;">${s.content}</p>
+          </div>
+        `;
+      });
+    }
+
+    // Publier annonce
     document.getElementById('publishPostBtn').addEventListener('click', () => {
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
@@ -595,14 +830,14 @@
         timestamp: Date.now()
       });
       localStorage.setItem('bde_posts', JSON.stringify(posts));
-      alert("Annonce publiée pour 7 jours !");
+      alert("Annonce publiée !");
       document.getElementById('postTitle').value = '';
       document.getElementById('postContent').value = '';
       document.getElementById('postFileInput').value = '';
       renderAnnouncements();
     }
 
-    // Publication Cours
+    // Publier cours
     document.getElementById('publishCourseBtn').addEventListener('click', () => {
       const level = document.getElementById('courseLevel').value;
       const title = document.getElementById('courseTitle').value.trim();
@@ -615,13 +850,13 @@
 
       courses.push({ level, title, url });
       localStorage.setItem('bde_courses', JSON.stringify(courses));
-      alert(`Cours ajouté pour les étudiants en ${level} !`);
+      alert(`Cours ajouté pour les ${level} !`);
       document.getElementById('courseTitle').value = '';
       document.getElementById('courseDriveUrl').value = '';
       renderCourses();
     });
 
-    // Initialisation
+    // Lancement
     checkUserSession();
   </script>
 </body>
