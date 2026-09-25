@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portail Officiel BDE EHES</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- SCRIPTS FIREBASE (Compatibilité Web CDN) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
   <style>
     :root {
       --primary: #800020; /* Bordeaux */
@@ -75,7 +80,8 @@
       background-color: #fff;
       box-shadow: 0 2px 10px rgba(0,0,0,0.05);
       overflow-x: auto;
-      sticky: top;
+      position: sticky;
+      top: 0;
       z-index: 100;
     }
 
@@ -439,9 +445,7 @@
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
 
         <h3>👥 Liste des Étudiants Inscrits (par niveau)</h3>
-        <div class="students-box" id="adminStudentsList">
-          <!-- La liste triée par niveau s'affiche ici -->
-        </div>
+        <div class="students-box" id="adminStudentsList"></div>
 
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
 
@@ -481,21 +485,64 @@
   </div>
 
   <script>
-    // DONNÉES LOCALES
-    let users = JSON.parse(localStorage.getItem('bde_users')) || [];
-    let posts = JSON.parse(localStorage.getItem('bde_posts')) || [];
-    let courses = JSON.parse(localStorage.getItem('bde_courses')) || [];
-    let logins = JSON.parse(localStorage.getItem('bde_logins')) || [];
-    let messages = JSON.parse(localStorage.getItem('bde_messages')) || [];
-    let suggestions = JSON.parse(localStorage.getItem('bde_suggestions')) || [];
-    let currentUser = JSON.parse(localStorage.getItem('bde_current_user')) || null;
+    // INITIALISATION FIREBASE
+    const firebaseConfig = {
+      apiKey: "AIzaSyA86vCNL-tF9AVh8-ehKhcEnKjpXmGMQWI",
+      authDomain: "bde-ehes.firebaseapp.com",
+      databaseURL: "https://bde-ehes-default-rtdb.firebaseio.com",
+      projectId: "bde-ehes",
+      storageBucket: "bde-ehes.firebasestorage.app",
+      messagingSenderId: "606167460267",
+      appId: "1:606167460267:web:27ae1e7d66e37cedb80aee",
+      measurementId: "G-KCFWT0H51R"
+    };
 
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // VARIABLES DE SESSION LOCALE
+    let currentUser = JSON.parse(localStorage.getItem('bde_current_user')) || null;
     let isRegisterMode = false;
 
-    // Purge auto des annonces (> 7 jours)
-    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    posts = posts.filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
-    localStorage.setItem('bde_posts', JSON.stringify(posts));
+    // RÉFÉRENCES BASE DE DONNÉES TEMPS RÉEL
+    let usersList = {};
+    let postsList = {};
+    let coursesList = {};
+    let messagesList = {};
+    let suggestionsList = {};
+    let loginsList = {};
+
+    // ECOUTEURS DE CHANGEMENT TEMPS RÉEL FIREBASE
+    db.ref('users').on('value', (snapshot) => {
+      usersList = snapshot.val() || {};
+      loadAdminStats();
+      renderAdminStudents();
+    });
+
+    db.ref('posts').on('value', (snapshot) => {
+      postsList = snapshot.val() || {};
+      renderAnnouncements();
+    });
+
+    db.ref('courses').on('value', (snapshot) => {
+      coursesList = snapshot.val() || {};
+      renderCourses();
+    });
+
+    db.ref('messages').on('value', (snapshot) => {
+      messagesList = snapshot.val() || {};
+      renderChat();
+    });
+
+    db.ref('suggestions').on('value', (snapshot) => {
+      suggestionsList = snapshot.val() || {};
+      renderAdminSuggestions();
+    });
+
+    db.ref('logins').on('value', (snapshot) => {
+      loginsList = snapshot.val() || {};
+      loadAdminStats();
+    });
 
     // CHANGER D'ONGLET
     function switchTab(tabId) {
@@ -503,8 +550,8 @@
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
       document.getElementById(tabId).classList.remove('hidden');
-      if (event && event.currentTarget) {
-        event.currentTarget.classList.add('active');
+      if (window.event && window.event.currentTarget) {
+        window.event.currentTarget.classList.add('active');
       }
     }
 
@@ -520,12 +567,12 @@
     const userStatus = document.getElementById('userStatus');
     const welcomeMsg = document.getElementById('welcomeMsg');
     const userLevelDisplay = document.getElementById('userLevelDisplay');
-    const coursesList = document.getElementById('coursesList');
-    const announcementsList = document.getElementById('announcementsList');
+    const coursesContainer = document.getElementById('coursesList');
+    const announcementsContainer = document.getElementById('announcementsList');
     const logoutSection = document.getElementById('logoutSection');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // INSCRIPTION / CONNEXION
+    // TOGGLE INSCRIPTION / CONNEXION
     toggleAuthLink.addEventListener('click', (e) => {
       e.preventDefault();
       isRegisterMode = !isRegisterMode;
@@ -544,6 +591,7 @@
       }
     });
 
+    // SOUMISSION CONNEXION / INSCRIPTION
     authForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const email = document.getElementById('authEmail').value.trim();
@@ -553,21 +601,22 @@
         const name = document.getElementById('authName').value.trim();
         const level = document.getElementById('authLevel').value;
 
-        if (users.find(u => u.email === email)) {
+        // Vérification présence
+        const existing = Object.values(usersList).find(u => u.email === email);
+        if (existing) {
           alert("Un compte existe déjà avec cet e-mail.");
           return;
         }
 
         const newUser = { name, email, password, level };
-        users.push(newUser);
-        localStorage.setItem('bde_users', JSON.stringify(users));
-        
+        db.ref('users').push(newUser);
+
         currentUser = newUser;
         localStorage.setItem('bde_current_user', JSON.stringify(currentUser));
         registerLogin();
         checkUserSession();
       } else {
-        const user = users.find(u => u.email === email && u.password === password);
+        const user = Object.values(usersList).find(u => u.email === email && u.password === password);
         if (user) {
           currentUser = user;
           localStorage.setItem('bde_current_user', JSON.stringify(currentUser));
@@ -581,8 +630,7 @@
 
     function registerLogin() {
       const today = new Date().toISOString().split('T')[0];
-      logins.push({ email: currentUser.email, date: today });
-      localStorage.setItem('bde_logins', JSON.stringify(logins));
+      db.ref('logins').push({ email: currentUser.email, date: today });
     }
 
     logoutBtn.addEventListener('click', () => {
@@ -625,17 +673,20 @@
       return url;
     }
 
-    // COURS
+    // AFFICHAGE DES COURS EN TEMPS RÉEL
     function renderCourses() {
       if (!currentUser) {
-        coursesList.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
+        coursesContainer.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
         return;
       }
-      const userCourses = courses.filter(c => c.level === currentUser.level);
-      coursesList.innerHTML = userCourses.length ? '' : '<p style="color:var(--light-text);">Aucun cours mis en ligne pour votre niveau.</p>';
+      
+      const allCourses = Object.values(coursesList);
+      const userCourses = allCourses.filter(c => c.level === currentUser.level);
+
+      coursesContainer.innerHTML = userCourses.length ? '' : '<p style="color:var(--light-text);">Aucun cours mis en ligne pour votre niveau.</p>';
       userCourses.forEach(c => {
         const downloadUrl = formatDriveLink(c.url);
-        coursesList.innerHTML += `
+        coursesContainer.innerHTML += `
           <div style="background:#fdfbf7; padding:15px; margin-bottom:12px; border-left:4px solid var(--secondary); border-radius:8px;">
             <strong>${c.title}</strong><br>
             <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Télécharger le document</a>
@@ -644,10 +695,14 @@
       });
     }
 
-    // ANNONCES
+    // AFFICHAGE DES ANNONCES EN TEMPS RÉEL (Purge > 7 jours)
     function renderAnnouncements() {
-      announcementsList.innerHTML = posts.length ? '' : '<p style="color:var(--light-text);">Aucune nouvelle annonce pour le moment.</p>';
-      posts.forEach(p => {
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      const allPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
+      allPosts.sort((a,b) => b.timestamp - a.timestamp);
+
+      announcementsContainer.innerHTML = allPosts.length ? '' : '<p style="color:var(--light-text);">Aucune nouvelle annonce pour le moment.</p>';
+      allPosts.forEach(p => {
         const dateStr = new Date(p.timestamp).toLocaleDateString();
         let mediaHtml = '';
 
@@ -659,7 +714,7 @@
           }
         }
 
-        announcementsList.innerHTML += `
+        announcementsContainer.innerHTML += `
           <div class="feed-item">
             <div class="feed-header">
               <span class="feed-title">${p.title}</span>
@@ -672,7 +727,7 @@
       });
     }
 
-    // FORUM
+    // FORUM EN TEMPS RÉEL
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
     const chatBox = document.getElementById('chatBox');
@@ -685,21 +740,23 @@
       if (!text) return;
 
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      messages.push({
+      db.ref('messages').push({
         sender: currentUser.name,
         level: currentUser.level,
         text: text,
-        time: timeStr
+        time: timeStr,
+        timestamp: Date.now()
       });
 
-      localStorage.setItem('bde_messages', JSON.stringify(messages));
       chatInput.value = '';
-      renderChat();
     });
 
     function renderChat() {
-      chatBox.innerHTML = messages.length ? '' : '<p style="color:var(--light-text);">Aucun message pour le moment.</p>';
-      messages.forEach(m => {
+      const msgs = Object.values(messagesList);
+      msgs.sort((a,b) => a.timestamp - b.timestamp);
+
+      chatBox.innerHTML = msgs.length ? '' : '<p style="color:var(--light-text);">Aucun message pour le moment.</p>';
+      msgs.forEach(m => {
         chatBox.innerHTML += `
           <div class="chat-msg">
             <span class="chat-time">${m.time}</span>
@@ -720,14 +777,14 @@
 
       const author = (isAnon || !currentUser) ? "Anonyme" : `${currentUser.name} (${currentUser.level})`;
 
-      suggestions.unshift({
+      db.ref('suggestions').push({
         author,
         title,
         content,
-        date: new Date().toLocaleDateString()
+        date: new Date().toLocaleDateString(),
+        timestamp: Date.now()
       });
 
-      localStorage.setItem('bde_suggestions', JSON.stringify(suggestions));
       alert("Votre suggestion a bien été envoyée au BDE ! Merci.");
       document.getElementById('suggestTitle').value = '';
       document.getElementById('suggestContent').value = '';
@@ -753,16 +810,20 @@
     });
 
     function loadAdminStats() {
-      document.getElementById('statInscrits').innerText = users.length;
+      const usersArray = Object.values(usersList);
+      document.getElementById('statInscrits').innerText = usersArray.length;
+      
       const today = new Date().toISOString().split('T')[0];
-      const todayLogins = logins.filter(l => l.date === today).length;
+      const loginsArray = Object.values(loginsList);
+      const todayLogins = loginsArray.filter(l => l.date === today).length;
       document.getElementById('statConnectes').innerText = todayLogins;
     }
 
-    // Affichage des inscrits triés par niveau
     function renderAdminStudents() {
       const container = document.getElementById('adminStudentsList');
-      if (!users.length) {
+      const usersArray = Object.values(usersList);
+
+      if (!usersArray.length) {
         container.innerHTML = '<p style="color:var(--light-text);">Aucun étudiant inscrit pour le moment.</p>';
         return;
       }
@@ -771,7 +832,7 @@
       let html = '';
 
       levels.forEach(lvl => {
-        const list = users.filter(u => u.level === lvl);
+        const list = usersArray.filter(u => u.level === lvl);
         if (list.length > 0) {
           html += `<div class="level-group">`;
           html += `<div class="level-title">🎓 Niveau ${lvl} (${list.length})</div>`;
@@ -787,8 +848,11 @@
 
     function renderAdminSuggestions() {
       const container = document.getElementById('adminSuggestionsList');
-      container.innerHTML = suggestions.length ? '' : '<p style="color:var(--light-text);">Aucune suggestion reçue.</p>';
-      suggestions.forEach(s => {
+      const suggs = Object.values(suggestionsList);
+      suggs.sort((a,b) => b.timestamp - a.timestamp);
+
+      container.innerHTML = suggs.length ? '' : '<p style="color:var(--light-text);">Aucune suggestion reçue.</p>';
+      suggs.forEach(s => {
         container.innerHTML += `
           <div class="suggestion-item">
             <strong>${s.title}</strong> <small>par ${s.author} - ${s.date}</small>
@@ -798,7 +862,7 @@
       });
     }
 
-    // Publier annonce
+    // PUBLIER ANNONCE
     document.getElementById('publishPostBtn').addEventListener('click', () => {
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
@@ -822,22 +886,20 @@
     });
 
     function savePost(title, content, mediaData, mediaType) {
-      posts.unshift({
+      db.ref('posts').push({
         title,
         content,
         mediaData,
         mediaType,
         timestamp: Date.now()
       });
-      localStorage.setItem('bde_posts', JSON.stringify(posts));
-      alert("Annonce publiée !");
+      alert("Annonce publiée en ligne ! Tous les étudiants la voient désormais.");
       document.getElementById('postTitle').value = '';
       document.getElementById('postContent').value = '';
       document.getElementById('postFileInput').value = '';
-      renderAnnouncements();
     }
 
-    // Publier cours
+    // PUBLIER COURS
     document.getElementById('publishCourseBtn').addEventListener('click', () => {
       const level = document.getElementById('courseLevel').value;
       const title = document.getElementById('courseTitle').value.trim();
@@ -848,15 +910,13 @@
         return;
       }
 
-      courses.push({ level, title, url });
-      localStorage.setItem('bde_courses', JSON.stringify(courses));
-      alert(`Cours ajouté pour les ${level} !`);
+      db.ref('courses').push({ level, title, url });
+      alert(`Cours ajouté pour le niveau ${level} ! Visible immédiatement par les étudiants.`);
       document.getElementById('courseTitle').value = '';
       document.getElementById('courseDriveUrl').value = '';
-      renderCourses();
     });
 
-    // Lancement
+    // DEMARRAGE
     checkUserSession();
   </script>
 </body>
