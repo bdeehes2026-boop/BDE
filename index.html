@@ -21,6 +21,7 @@
       --card-bg: #ffffff;
       --text: #2c3e50;
       --light-text: #7f8c8d;
+      --danger: #e74c3c;
     }
 
     * {
@@ -64,6 +65,39 @@
       margin: 0;
       font-weight: 700;
       letter-spacing: 0.5px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #notifBtn {
+      position: relative;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      padding: 8px 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      width: auto;
+      margin: 0;
+      box-shadow: none;
+    }
+
+    #notifBadge {
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      background: var(--danger);
+      color: white;
+      font-size: 0.7rem;
+      font-weight: bold;
+      border-radius: 10px;
+      padding: 2px 6px;
+      display: none;
     }
 
     #userStatus {
@@ -139,7 +173,7 @@
       margin-bottom: 10px;
     }
 
-    h2, h3 {
+    h2, h3, h4 {
       color: var(--primary);
       margin-top: 0;
       font-weight: 600;
@@ -183,6 +217,21 @@
 
     .btn-gold:hover {
       background-color: #b8962d;
+    }
+
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      width: auto;
+      margin-top: 8px;
+      border-radius: 6px;
+      box-shadow: none;
+    }
+
+    .btn-danger:hover {
+      background-color: #c0392b;
     }
 
     .hidden {
@@ -257,7 +306,7 @@
       font-weight: 600;
     }
 
-    .chat-box, .suggestion-box, .students-box {
+    .chat-box, .suggestion-box, .students-box, .manage-box {
       max-height: 380px;
       overflow-y: auto;
       border: 1px solid #edf2f7;
@@ -267,7 +316,7 @@
       margin-bottom: 15px;
     }
 
-    .chat-msg, .suggestion-item {
+    .chat-msg, .suggestion-item, .manage-item {
       margin-bottom: 12px;
       padding: 12px;
       background: #fff;
@@ -322,6 +371,27 @@
       font-weight: 600;
       margin-left: 6px;
     }
+
+    /* MODAL NOTIFICATIONS */
+    .modal {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body>
@@ -332,13 +402,19 @@
       <img src="logo_bde.png" alt="BDE" onerror="this.style.display='none'">
       <h1>BDE EHES</h1>
     </div>
-    <div id="userStatus">Visiteur</div>
+    <div class="header-actions">
+      <button id="notifBtn" onclick="openNotifs()">
+        🔔 <span id="notifBadge">0</span>
+      </button>
+      <div id="userStatus">Visiteur</div>
+    </div>
   </header>
 
   <!-- NAVIGATION -->
   <nav class="tabs">
     <button class="tab-btn active" onclick="switchTab('homeTab')">📢 Accueil</button>
     <button class="tab-btn" onclick="switchTab('coursesTab')">📚 Cours & TDs</button>
+    <button class="tab-btn" onclick="switchTab('biblioTab')">📖 Bibliothèque</button>
     <button class="tab-btn" onclick="switchTab('chatTab')">💬 Forum</button>
     <button class="tab-btn" onclick="switchTab('suggestTab')">💡 Suggestions</button>
     <button class="tab-btn" onclick="switchTab('adminTab')">⚙️ Admin</button>
@@ -418,7 +494,29 @@
       </div>
     </div>
 
-    <!-- ONGLET 3 : FORUM DISCUSSION -->
+    <!-- ONGLET 3 : BIBLIOTHÈQUE -->
+    <div id="biblioTab" class="tab-content card hidden">
+      <h2>📖 Bibliothèque Virtuelle EHES</h2>
+      <p style="color: var(--light-text); font-size: 0.9rem;">Consultez et téléchargez les livres, ouvrages et manuels de référence.</p>
+
+      <div style="margin: 15px 0;">
+        <select id="biblioFilterMajor" onchange="renderBiblio()" style="margin:0;">
+          <option value="ALL">Toutes les Filières</option>
+          <option value="Pétrole et Gaz">Pétrole et Gaz</option>
+          <option value="Génie Civil">Génie Civil</option>
+          <option value="Gestion des Entreprises">Gestion des Entreprises</option>
+          <option value="Transport & Logistique">Transport & Logistique</option>
+          <option value="Général">Culture Générale & Ouvrages Globaux</option>
+        </select>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid #eee; margin: 15px 0;">
+      <div id="biblioList">
+        <!-- Liste des livres -->
+      </div>
+    </div>
+
+    <!-- ONGLET 4 : FORUM DISCUSSION -->
     <div id="chatTab" class="tab-content card hidden">
       <h2>💬 Forum de Discussion</h2>
       <div id="chatGuestWarning" class="hidden">
@@ -433,7 +531,7 @@
       </div>
     </div>
 
-    <!-- ONGLET 4 : BOÎTE À SUGGESTIONS -->
+    <!-- ONGLET 5 : BOÎTE À SUGGESTIONS -->
     <div id="suggestTab" class="tab-content card hidden">
       <h2>💡 Boîte à Suggestions</h2>
       <p style="color: var(--light-text); font-size: 0.9rem;">Une idée pour améliorer la vie étudiante ? Partagez-la directement avec le BDE !</p>
@@ -448,7 +546,7 @@
       </form>
     </div>
 
-    <!-- ONGLET 5 : ADMIN -->
+    <!-- ONGLET 6 : ADMIN -->
     <div id="adminTab" class="tab-content card hidden">
       <h2>⚙️ Administration BDE</h2>
       <div id="adminAuth">
@@ -457,7 +555,11 @@
       </div>
 
       <div id="adminPanel" class="hidden">
-        <h3>Aperçu de la plateforme</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h3 style="margin:0;">Panneau de Gestion</h3>
+          <button onclick="logoutAdmin()" class="btn-danger">Se déconnecter de l'Admin</button>
+        </div>
+
         <div class="stat-box">
           <div class="stat-number" id="statInscrits">0</div>
           Étudiants Inscrits
@@ -469,17 +571,15 @@
 
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
 
-        <h3>👥 Liste des Étudiants Inscrits (par niveau)</h3>
-        <div class="students-box" id="adminStudentsList"></div>
-
-        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
-
         <h3>📢 Publier une Annonce</h3>
         <input type="text" id="postTitle" placeholder="Titre de l'annonce">
         <textarea id="postContent" rows="3" placeholder="Contenu de l'annonce..."></textarea>
         <label style="font-size: 0.85rem; font-weight: 600;">Joindre Photo ou Vidéo :</label>
         <input type="file" id="postFileInput" accept="image/*,video/*">
         <button id="publishPostBtn">Publier (Valide 7 jours)</button>
+
+        <h4 style="margin-top: 20px;">📢 Gérer / Supprimer les annonces</h4>
+        <div class="manage-box" id="adminManagePostsList"></div>
 
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
 
@@ -501,6 +601,32 @@
         <input type="url" id="courseDriveUrl" placeholder="Lien Google Drive du document">
         <button id="publishCourseBtn" class="btn-gold">Ajouter le cours</button>
 
+        <h4 style="margin-top: 20px;">📂 Gérer / Supprimer les cours existants</h4>
+        <div class="manage-box" id="adminManageCoursesList"></div>
+
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+
+        <h3>📖 Ajouter un Livre dans la Bibliothèque</h3>
+        <select id="bookMajor">
+          <option value="Pétrole et Gaz">Pétrole et Gaz</option>
+          <option value="Génie Civil">Génie Civil</option>
+          <option value="Gestion des Entreprises">Gestion des Entreprises</option>
+          <option value="Transport & Logistique">Transport & Logistique</option>
+          <option value="Général">Culture Générale & Ouvrages Globaux</option>
+        </select>
+        <input type="text" id="bookTitle" placeholder="Titre du livre">
+        <input type="text" id="bookAuthor" placeholder="Auteur du livre">
+        <input type="url" id="bookDriveUrl" placeholder="Lien Google Drive ou téléchargement">
+        <button id="publishBookBtn" class="btn-gold">Ajouter le livre</button>
+
+        <h4 style="margin-top: 20px;">📖 Gérer / Supprimer les livres</h4>
+        <div class="manage-box" id="adminManageBooksList"></div>
+
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+
+        <h3>👥 Liste des Étudiants Inscrits (par niveau)</h3>
+        <div class="students-box" id="adminStudentsList"></div>
+
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
 
         <h3>💡 Suggestions reçues des étudiants</h3>
@@ -508,11 +634,22 @@
       </div>
     </div>
 
-    <!-- DECONNEXION -->
+    <!-- DECONNEXION ÉTUDIANT -->
     <div id="logoutSection" class="hidden" style="text-align:center; margin-top:15px;">
-      <button id="logoutBtn" style="background-color: #666; width: auto; padding: 10px 25px; border-radius: 20px;">Se déconnecter</button>
+      <button id="logoutBtn" style="background-color: #666; width: auto; padding: 10px 25px; border-radius: 20px;">Se déconnecter du compte</button>
     </div>
 
+  </div>
+
+  <!-- MODAL NOTIFICATIONS -->
+  <div id="notifModal" class="modal hidden">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="margin:0;">📢 Dernières Notifications</h3>
+        <button onclick="closeNotifs()" style="width:auto; padding:4px 10px; margin:0;">✖</button>
+      </div>
+      <div id="notifList"></div>
+    </div>
   </div>
 
   <script>
@@ -535,15 +672,17 @@
 
     let currentProfile = null;
     let isRegisterMode = false;
+    let isAdminLoggedIn = localStorage.getItem('ehes_admin_logged') === 'true';
 
     let usersList = {};
     let postsList = {};
     let coursesList = {};
+    let booksList = {};
     let messagesList = {};
     let suggestionsList = {};
     let loginsList = {};
 
-    // Charger session locale
+    // Charger session
     const savedUser = localStorage.getItem('ehes_user');
     if (savedUser) {
       currentProfile = JSON.parse(savedUser);
@@ -558,11 +697,20 @@
     db.ref('posts').on('value', (snapshot) => {
       postsList = snapshot.val() || {};
       renderAnnouncements();
+      renderAdminPostsManage();
+      updateNotifBadge();
     });
 
     db.ref('courses').on('value', (snapshot) => {
       coursesList = snapshot.val() || {};
       renderCourses();
+      renderAdminCoursesManage();
+    });
+
+    db.ref('books').on('value', (snapshot) => {
+      booksList = snapshot.val() || {};
+      renderBiblio();
+      renderAdminBooksManage();
     });
 
     db.ref('messages').on('value', (snapshot) => {
@@ -712,7 +860,6 @@
         welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
         userLevelDisplay.innerText = `${currentProfile.level} - ${currentProfile.major}`;
 
-        // Auto-sélection de sa filière dans les filtres
         if (document.getElementById('filterMajor')) {
           document.getElementById('filterMajor').value = currentProfile.major;
         }
@@ -731,7 +878,9 @@
       }
       renderAnnouncements();
       renderCourses();
+      renderBiblio();
       renderChat();
+      checkAdminSession();
     }
 
     function formatDriveLink(url) {
@@ -742,7 +891,7 @@
       return url;
     }
 
-    // COURS AVEC FILTRE ET CLASSEMENT PAR FILIÈRE
+    // COURS
     function renderCourses() {
       if (!currentProfile) {
         coursesContainer.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
@@ -752,10 +901,8 @@
       const allCourses = Object.values(coursesList);
       const selectedMajor = document.getElementById('filterMajor').value;
 
-      // Filtrer par niveau
       let userCourses = allCourses.filter(c => c.level === currentProfile.level);
 
-      // Filtrer par filière si spécifique
       if (selectedMajor !== 'ALL') {
         userCourses = userCourses.filter(c => c.major === selectedMajor);
       }
@@ -765,7 +912,6 @@
         return;
       }
 
-      // Regroupement par Filière
       const grouped = {};
       userCourses.forEach(c => {
         const majorKey = c.major || "Général";
@@ -792,6 +938,40 @@
       coursesContainer.innerHTML = html;
     }
 
+    // BIBLIOTHÈQUE
+    function renderBiblio() {
+      const container = document.getElementById('biblioList');
+      if (!container) return;
+
+      const allBooks = Object.values(booksList);
+      const selectedMajor = document.getElementById('biblioFilterMajor').value;
+
+      let filteredBooks = allBooks;
+      if (selectedMajor !== 'ALL') {
+        filteredBooks = allBooks.filter(b => b.major === selectedMajor);
+      }
+
+      if (!filteredBooks.length) {
+        container.innerHTML = '<p style="color:var(--light-text);">Aucun ouvrage disponible dans cette catégorie.</p>';
+        return;
+      }
+
+      let html = '';
+      filteredBooks.forEach(b => {
+        const downloadUrl = formatDriveLink(b.url);
+        html += `
+          <div style="background:#fdfbf7; padding:14px; margin-bottom:12px; border-left:4px solid var(--primary); border-radius:8px;">
+            <strong>📖 ${b.title}</strong> <small style="color:var(--light-text);">par ${b.author}</small>
+            <div><span class="major-badge">${b.major}</span></div>
+            <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Accéder au livre</a>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    // ANNONCES
     function renderAnnouncements() {
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
       const allPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
@@ -823,6 +1003,48 @@
       });
     }
 
+    // NOTIFICATIONS
+    function updateNotifBadge() {
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
+      const badge = document.getElementById('notifBadge');
+      if (recentPosts.length > 0) {
+        badge.innerText = recentPosts.length;
+        badge.style.display = 'block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    function openNotifs() {
+      const modal = document.getElementById('notifModal');
+      const list = document.getElementById('notifList');
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
+      recentPosts.sort((a,b) => b.timestamp - a.timestamp);
+
+      if (!recentPosts.length) {
+        list.innerHTML = '<p style="color:var(--light-text);">Aucune notification récente.</p>';
+      } else {
+        let html = '';
+        recentPosts.forEach(p => {
+          html += `
+            <div style="padding:10px 0; border-bottom:1px solid #eee;">
+              <strong>📢 ${p.title}</strong>
+              <p style="margin:4px 0; font-size:0.85rem; color:#555;">${p.content.substring(0, 80)}...</p>
+            </div>
+          `;
+        });
+        list.innerHTML = html;
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeNotifs() {
+      document.getElementById('notifModal').classList.add('hidden');
+    }
+
+    // CHAT
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
     const chatBox = document.getElementById('chatBox');
@@ -865,6 +1087,7 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
+    // SUGGESTIONS
     document.getElementById('suggestForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const title = document.getElementById('suggestTitle').value.trim();
@@ -887,6 +1110,7 @@
       document.getElementById('suggestAnon').checked = false;
     });
 
+    // ADMIN AUTHENTIFICATION & SESSION PERSISTANTE
     const adminAuth = document.getElementById('adminAuth');
     const adminPanel = document.getElementById('adminPanel');
     const adminPassInput = document.getElementById('adminPassInput');
@@ -894,15 +1118,35 @@
 
     adminLoginBtn.addEventListener('click', () => {
       if (adminPassInput.value === ADMIN_PASSWORD) {
+        isAdminLoggedIn = true;
+        localStorage.setItem('ehes_admin_logged', 'true');
+        checkAdminSession();
+      } else {
+        alert("Mot de passe Administrateur incorrect.");
+      }
+    });
+
+    function checkAdminSession() {
+      if (isAdminLoggedIn) {
         adminAuth.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         loadAdminStats();
         renderAdminStudents();
         renderAdminSuggestions();
+        renderAdminCoursesManage();
+        renderAdminPostsManage();
+        renderAdminBooksManage();
       } else {
-        alert("Mot de passe Administrateur incorrect.");
+        adminAuth.classList.remove('hidden');
+        adminPanel.classList.add('hidden');
       }
-    });
+    }
+
+    function logoutAdmin() {
+      isAdminLoggedIn = false;
+      localStorage.removeItem('ehes_admin_logged');
+      checkAdminSession();
+    }
 
     function loadAdminStats() {
       const usersArray = Object.values(usersList);
@@ -958,6 +1202,97 @@
       });
     }
 
+    // GESTION SUPPRESSION COURS
+    function renderAdminCoursesManage() {
+      const container = document.getElementById('adminManageCoursesList');
+      if (!container) return;
+
+      const entries = Object.entries(coursesList);
+      if (!entries.length) {
+        container.innerHTML = '<p style="color:var(--light-text);">Aucun cours à gérer.</p>';
+        return;
+      }
+
+      let html = '';
+      entries.forEach(([key, course]) => {
+        html += `
+          <div class="manage-item">
+            <strong>${course.title}</strong> — <small>${course.major || 'Général'} (${course.level})</small><br>
+            <button class="btn-danger" onclick="deleteCourse('${key}')">🗑️ Supprimer ce cours</button>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function deleteCourse(courseKey) {
+      if (confirm("Supprimer ce cours ?")) {
+        db.ref('courses/' + courseKey).remove();
+      }
+    }
+
+    // GESTION SUPPRESSION ANNONCES
+    function renderAdminPostsManage() {
+      const container = document.getElementById('adminManagePostsList');
+      if (!container) return;
+
+      const entries = Object.entries(postsList);
+      if (!entries.length) {
+        container.innerHTML = '<p style="color:var(--light-text);">Aucune annonce à gérer.</p>';
+        return;
+      }
+
+      let html = '';
+      entries.forEach(([key, post]) => {
+        html += `
+          <div class="manage-item">
+            <strong>${post.title}</strong><br>
+            <button class="btn-danger" onclick="deletePost('${key}')">🗑️ Supprimer l'annonce</button>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function deletePost(postKey) {
+      if (confirm("Supprimer cette annonce ?")) {
+        db.ref('posts/' + postKey).remove();
+      }
+    }
+
+    // GESTION SUPPRESSION LIVRES (BIBLIOTHÈQUE)
+    function renderAdminBooksManage() {
+      const container = document.getElementById('adminManageBooksList');
+      if (!container) return;
+
+      const entries = Object.entries(booksList);
+      if (!entries.length) {
+        container.innerHTML = '<p style="color:var(--light-text);">Aucun livre à gérer.</p>';
+        return;
+      }
+
+      let html = '';
+      entries.forEach(([key, book]) => {
+        html += `
+          <div class="manage-item">
+            <strong>${book.title}</strong> — <small>${book.author} (${book.major})</small><br>
+            <button class="btn-danger" onclick="deleteBook('${key}')">🗑️ Supprimer ce livre</button>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function deleteBook(bookKey) {
+      if (confirm("Supprimer ce livre ?")) {
+        db.ref('books/' + bookKey).remove();
+      }
+    }
+
+    // PUBLIER ANNONCE
     document.getElementById('publishPostBtn').addEventListener('click', () => {
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
@@ -994,6 +1329,7 @@
       document.getElementById('postFileInput').value = '';
     }
 
+    // PUBLIER COURS
     document.getElementById('publishCourseBtn').addEventListener('click', () => {
       const major = document.getElementById('courseMajor').value;
       const level = document.getElementById('courseLevel').value;
@@ -1009,6 +1345,25 @@
       alert(`Cours ajouté pour ${major} - ${level} !`);
       document.getElementById('courseTitle').value = '';
       document.getElementById('courseDriveUrl').value = '';
+    });
+
+    // PUBLIER LIVRE (BIBLIOTHÈQUE)
+    document.getElementById('publishBookBtn').addEventListener('click', () => {
+      const major = document.getElementById('bookMajor').value;
+      const title = document.getElementById('bookTitle').value.trim();
+      const author = document.getElementById('bookAuthor').value.trim();
+      const url = document.getElementById('bookDriveUrl').value.trim();
+
+      if (!title || !url || !author) {
+        alert("Veuillez remplir tous les champs.");
+        return;
+      }
+
+      db.ref('books').push({ major, title, author, url });
+      alert(`Livre "${title}" ajouté à la bibliothèque !`);
+      document.getElementById('bookTitle').value = '';
+      document.getElementById('bookAuthor').value = '';
+      document.getElementById('bookDriveUrl').value = '';
     });
 
     checkUserSession();
