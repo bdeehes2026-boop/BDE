@@ -1,1 +1,628 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portail BDE EHES</title>
+  <style>
+    :root {
+      --primary: #800020; /* Bordeaux */
+      --secondary: #D4AF37; /* Or */
+      --bg: #f4f6f9;
+      --text: #333;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background-color: var(--primary);
+      color: white;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    header img {
+      height: 40px;
+      margin-right: 10px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+    }
+
+    /* BARRE DE NAVIGATION PAR ONGLETS */
+    nav.tabs {
+      display: flex;
+      background-color: #600018;
+      overflow-x: auto;
+    }
+    nav.tabs button {
+      flex: 1;
+      padding: 12px 10px;
+      background: none;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      border-radius: 0;
+      margin: 0;
+      white-space: nowrap;
+    }
+    nav.tabs button.active {
+      border-bottom: 3px solid var(--secondary);
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 15px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-top: 4px solid var(--primary);
+    }
+    h2, h3 {
+      color: var(--primary);
+      margin-top: 0;
+    }
+    input, select, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #600018;
+    }
+    .btn-gold {
+      background-color: var(--secondary);
+      color: #333;
+    }
+    .btn-gold:hover {
+      background-color: #c09e2e;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .stat-box {
+      display: inline-block;
+      width: 48%;
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 6px;
+      text-align: center;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+    .feed-item {
+      border-bottom: 1px solid #eee;
+      padding: 12px 0;
+    }
+    .feed-item:last-child {
+      border-bottom: none;
+    }
+    .feed-date {
+      font-size: 0.8rem;
+      color: #777;
+    }
+    .feed-media {
+      max-width: 100%;
+      max-height: 350px;
+      border-radius: 6px;
+      margin-top: 10px;
+      display: block;
+    }
+    .drive-link {
+      display: inline-block;
+      margin-top: 5px;
+      padding: 6px 12px;
+      background-color: var(--secondary);
+      color: #000;
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+
+    /* ESPACE DISCUSSION */
+    .chat-box {
+      max-height: 350px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 6px;
+      background: #fafafa;
+      margin-bottom: 10px;
+    }
+    .chat-msg {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .chat-msg strong {
+      color: var(--primary);
+    }
+    .chat-time {
+      font-size: 0.75rem;
+      color: #999;
+      float: right;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <img src="logo_ehes.png" alt="EHES" onerror="this.style.display='none'">
+      <img src="logo_bde.png" alt="BDE" onerror="this.style.display='none'">
+      <h1 style="font-size: 1.2rem; margin: 0;">BDE EHES</h1>
+    </div>
+    <div id="userStatus" style="font-size:0.9rem;"></div>
+  </header>
+
+  <!-- NAVIGATION PAR ONGLETS -->
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab('homeTab')">📢 Accueil</button>
+    <button class="tab-btn" onclick="switchTab('coursesTab')">📚 Cours & TDs</button>
+    <button class="tab-btn" onclick="switchTab('chatTab')">💬 Discussion</button>
+    <button class="tab-btn" onclick="switchTab('adminTab')">⚙️ Admin</button>
+  </nav>
+
+  <div class="container">
+
+    <!-- FORMULAIRE AUTHENTIFICATION (S'AFFICHE SI NON CONNECTE) -->
+    <div id="authSection" class="card">
+      <h2 id="authTitle">Connexion Étudiant</h2>
+      
+      <form id="authForm">
+        <div id="registerFields" class="hidden">
+          <input type="text" id="authName" placeholder="Nom complet">
+          <select id="authLevel">
+            <option value="L1">Licence 1 (L1)</option>
+            <option value="L2">Licence 2 (L2)</option>
+            <option value="L3">Licence 3 (L3)</option>
+            <option value="M1">Master 1 (M1)</option>
+            <option value="M2">Master 2 (M2)</option>
+          </select>
+        </div>
+
+        <input type="email" id="authEmail" placeholder="Adresse Email" required>
+        <input type="password" id="authPassword" placeholder="Mot de passe" required>
+        
+        <button type="submit" id="authSubmitBtn">Se connecter</button>
+      </form>
+
+      <p style="text-align: center; margin-top: 15px;">
+        <span id="toggleAuthText">Pas encore de compte ?</span>
+        <a href="#" id="toggleAuthLink" style="color: var(--primary); font-weight: bold;">S'inscrire</a>
+      </p>
+    </div>
+
+    <!-- ONGLET 1 : ACCUEIL / ANNONCES DE LA SEMAINE -->
+    <div id="homeTab" class="tab-content card">
+      <h2>Annonces de la semaine</h2>
+      <p id="welcomeMsg"></p>
+      <div id="announcementsList">
+        <!-- Les annonces récentes s'affichent ici -->
+      </div>
+    </div>
+
+    <!-- ONGLET 2 : COURS ET TDS (Restreint par niveau) -->
+    <div id="coursesTab" class="tab-content card hidden">
+      <h2>Vos Cours & TDs (<span id="userLevelDisplay">Non connecté</span>)</h2>
+      <div id="coursesList">
+        <!-- Les cours accessibles s'affichent ici -->
+      </div>
+    </div>
+
+    <!-- ONGLET 3 : DISCUSSION EN TEMPS RÉEL -->
+    <div id="chatTab" class="tab-content card hidden">
+      <h2>Espace de Discussion</h2>
+      <div id="chatGuestWarning" class="hidden">
+        <p>Veuillez vous connecter pour participer aux discussions.</p>
+      </div>
+      <div id="chatContainer">
+        <div class="chat-box" id="chatBox">
+          <!-- Les messages s'affichent ici -->
+        </div>
+        <form id="chatForm">
+          <input type="text" id="chatInput" placeholder="Écrivez votre message..." required>
+          <button type="submit">Envoyer</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ONGLET 4 : PANNEAU D'ADMINISTRATION -->
+    <div id="adminTab" class="tab-content card hidden">
+      <h2>Administration BDE</h2>
+      <div id="adminAuth">
+        <input type="password" id="adminPassInput" placeholder="Mot de passe Administrateur">
+        <button id="adminLoginBtn" class="btn-gold">Accéder au Panneau Admin</button>
+      </div>
+
+      <div id="adminPanel" class="hidden">
+        <h3>Statistiques de la plateforme</h3>
+        <div class="stat-box">
+          <div class="stat-number" id="statInscrits">0</div>
+          Inscrits au total
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="statConnectes">0</div>
+          Connexions aujourd'hui
+        </div>
+
+        <hr style="margin: 20px 0;">
+
+        <h3>Publier une annonce (Texte, Photo ou Vidéo)</h3>
+        <input type="text" id="postTitle" placeholder="Titre de l'annonce">
+        <textarea id="postContent" placeholder="Contenu de l'annonce"></textarea>
+        
+        <label style="font-size:0.85rem; font-weight:bold; color:#555;">Ajouter une photo ou vidéo depuis votre téléphone :</label>
+        <input type="file" id="postFileInput" accept="image/*,video/*">
+
+        <button id="publishPostBtn">Publier l'annonce (Visible 7 jours)</button>
+
+        <hr style="margin: 20px 0;">
+
+        <h3>Ajouter un cours / TD</h3>
+        <select id="courseLevel">
+          <option value="L1">Licence 1 (L1)</option>
+          <option value="L2">Licence 2 (L2)</option>
+          <option value="L3">Licence 3 (L3)</option>
+          <option value="M1">Master 1 (M1)</option>
+          <option value="M2">Master 2 (M2)</option>
+        </select>
+        <input type="text" id="courseTitle" placeholder="Titre du cours / TD">
+        <input type="url" id="courseDriveUrl" placeholder="Lien Google Drive du cours">
+        <button id="publishCourseBtn" class="btn-gold">Ajouter le cours</button>
+      </div>
+    </div>
+
+    <!-- BOUTON SE DECONNECTER (S'affiche quand connecté) -->
+    <div id="logoutSection" class="hidden" style="text-align:center; margin-top:15px;">
+      <button id="logoutBtn" style="background-color: #555; width: auto; padding: 8px 20px;">Se déconnecter</button>
+    </div>
+
+  </div>
+
+  <script>
+    // --- STOCKAGE LOCAL ---
+    let users = JSON.parse(localStorage.getItem('bde_users')) || [];
+    let posts = JSON.parse(localStorage.getItem('bde_posts')) || [];
+    let courses = JSON.parse(localStorage.getItem('bde_courses')) || [];
+    let logins = JSON.parse(localStorage.getItem('bde_logins')) || [];
+    let messages = JSON.parse(localStorage.getItem('bde_messages')) || [];
+    let currentUser = JSON.parse(localStorage.getItem('bde_current_user')) || null;
+
+    let isRegisterMode = false;
+
+    // Suppression automatique des annonces de plus de 7 jours
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    posts = posts.filter(p => (now - p.timestamp) < ONE_WEEK_MS);
+    localStorage.setItem('bde_posts', JSON.stringify(posts));
+
+    // --- NAVIGATION PAR ONGLETS ---
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+      document.getElementById(tabId).classList.remove('hidden');
+      event.currentTarget.classList.add('active');
+    }
+
+    // --- ELEMENTS DU DOM ---
+    const authSection = document.getElementById('authSection');
+    const authForm = document.getElementById('authForm');
+    const authTitle = document.getElementById('authTitle');
+    const registerFields = document.getElementById('registerFields');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const toggleAuthLink = document.getElementById('toggleAuthLink');
+    const toggleAuthText = document.getElementById('toggleAuthText');
+
+    const userStatus = document.getElementById('userStatus');
+    const welcomeMsg = document.getElementById('welcomeMsg');
+    const userLevelDisplay = document.getElementById('userLevelDisplay');
+    const coursesList = document.getElementById('coursesList');
+    const announcementsList = document.getElementById('announcementsList');
+    const logoutSection = document.getElementById('logoutSection');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // --- GESTION INSCRIPTION / CONNEXION ---
+    toggleAuthLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      isRegisterMode = !isRegisterMode;
+      if (isRegisterMode) {
+        authTitle.innerText = "Inscription Étudiant";
+        registerFields.classList.remove('hidden');
+        authSubmitBtn.innerText = "S'inscrire";
+        toggleAuthText.innerText = "Déjà un compte ?";
+        toggleAuthLink.innerText = "Se connecter";
+      } else {
+        authTitle.innerText = "Connexion Étudiant";
+        registerFields.classList.add('hidden');
+        authSubmitBtn.innerText = "Se connecter";
+        toggleAuthText.innerText = "Pas encore de compte ?";
+        toggleAuthLink.innerText = "S'inscrire";
+      }
+    });
+
+    authForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+
+      if (isRegisterMode) {
+        const name = document.getElementById('authName').value.trim();
+        const level = document.getElementById('authLevel').value;
+
+        if (users.find(u => u.email === email)) {
+          alert("Un compte existe déjà avec cette adresse email !");
+          return;
+        }
+
+        const newUser = { name, email, password, level };
+        users.push(newUser);
+        localStorage.setItem('bde_users', JSON.stringify(users));
+        
+        currentUser = newUser;
+        localStorage.setItem('bde_current_user', JSON.stringify(currentUser));
+        registerLogin();
+        checkUserSession();
+      } else {
+        const user = users.find(u => u.email === email && u.password === password);
+        if (user) {
+          currentUser = user;
+          localStorage.setItem('bde_current_user', JSON.stringify(currentUser));
+          registerLogin();
+          checkUserSession();
+        } else {
+          alert("Email ou mot de passe incorrect.");
+        }
+      }
+    });
+
+    function registerLogin() {
+      const today = new Date().toISOString().split('T')[0];
+      logins.push({ email: currentUser.email, date: today });
+      localStorage.setItem('bde_logins', JSON.stringify(logins));
+    }
+
+    logoutBtn.addEventListener('click', () => {
+      currentUser = null;
+      localStorage.removeItem('bde_current_user');
+      checkUserSession();
+    });
+
+    function checkUserSession() {
+      if (currentUser) {
+        authSection.classList.add('hidden');
+        logoutSection.classList.remove('hidden');
+        userStatus.innerText = `👤 ${currentUser.name} (${currentUser.level})`;
+        welcomeMsg.innerHTML = `Bienvenue <strong>${currentUser.name}</strong> ! Voici les actualités de la semaine.`;
+        userLevelDisplay.innerText = currentUser.level;
+
+        document.getElementById('chatContainer').classList.remove('hidden');
+        document.getElementById('chatGuestWarning').classList.add('hidden');
+      } else {
+        authSection.classList.remove('hidden');
+        logoutSection.classList.add('hidden');
+        userStatus.innerText = "Non connecté";
+        welcomeMsg.innerText = "Connectez-vous pour accéder à vos cours et participer au forum.";
+        userLevelDisplay.innerText = "Non connecté";
+
+        document.getElementById('chatContainer').classList.add('hidden');
+        document.getElementById('chatGuestWarning').classList.remove('hidden');
+      }
+      renderAnnouncements();
+      renderCourses();
+      renderChat();
+    }
+
+    // --- CONVERSION LIEN GOOGLE DRIVE TELECHARGEMENT ---
+    function formatDriveLink(url) {
+      if (url.includes('drive.google.com') && url.includes('/d/')) {
+        const fileId = url.split('/d/')[1].split('/')[0];
+        return `https://drive.google.com/uc?export=download&id=${fileId}`;
+      }
+      return url;
+    }
+
+    // --- AFFICHAGE DES COURS ---
+    function renderCourses() {
+      if (!currentUser) {
+        coursesList.innerHTML = '<p>Veuillez vous connecter pour voir vos cours.</p>';
+        return;
+      }
+      const userCourses = courses.filter(c => c.level === currentUser.level);
+      coursesList.innerHTML = userCourses.length ? '' : '<p>Aucun cours disponible pour votre niveau.</p>';
+      userCourses.forEach(c => {
+        const downloadUrl = formatDriveLink(c.url);
+        coursesList.innerHTML += `
+          <div style="background:#f9f9f9; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:4px;">
+            <strong>${c.title}</strong><br>
+            <a href="${downloadUrl}" class="drive-link" target="_blank" download>Télécharger le fichier</a>
+          </div>
+        `;
+      });
+    }
+
+    // --- AFFICHAGE DES ANNONCES ---
+    function renderAnnouncements() {
+      announcementsList.innerHTML = posts.length ? '' : '<p>Aucune annonce cette semaine.</p>';
+      posts.forEach(p => {
+        const dateStr = new Date(p.timestamp).toLocaleDateString();
+        let mediaHtml = '';
+
+        if (p.mediaData) {
+          if (p.mediaType.startsWith('image/')) {
+            mediaHtml = `<img src="${p.mediaData}" class="feed-media" alt="Image annonce">`;
+          } else if (p.mediaType.startsWith('video/')) {
+            mediaHtml = `<video src="${p.mediaData}" controls class="feed-media"></video>`;
+          }
+        }
+
+        announcementsList.innerHTML += `
+          <div class="feed-item">
+            <strong>${p.title}</strong> <span class="feed-date">(${dateStr})</span>
+            <p>${p.content}</p>
+            ${mediaHtml}
+          </div>
+        `;
+      });
+    }
+
+    // --- ESPACE DISCUSSION ---
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const chatBox = document.getElementById('chatBox');
+
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      messages.push({
+        sender: currentUser.name,
+        level: currentUser.level,
+        text: text,
+        time: timeStr
+      });
+
+      localStorage.setItem('bde_messages', JSON.stringify(messages));
+      chatInput.value = '';
+      renderChat();
+    });
+
+    function renderChat() {
+      chatBox.innerHTML = messages.length ? '' : '<p style="color:#888;">Aucun message. Soyez le premier à discuter !</p>';
+      messages.forEach(m => {
+        chatBox.innerHTML += `
+          <div class="chat-msg">
+            <span class="chat-time">${m.time}</span>
+            <strong>${m.sender} (${m.level}) :</strong>
+            <div>${m.text}</div>
+          </div>
+        `;
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // --- PANNEAU D'ADMINISTRATION ---
+    const adminAuth = document.getElementById('adminAuth');
+    const adminPanel = document.getElementById('adminPanel');
+    const adminPassInput = document.getElementById('adminPassInput');
+    const adminLoginBtn = document.getElementById('adminLoginBtn');
+
+    adminLoginBtn.addEventListener('click', () => {
+      if (adminPassInput.value === 'bde2026') {
+        adminAuth.classList.add('hidden');
+        adminPanel.classList.remove('hidden');
+        loadAdminStats();
+      } else {
+        alert("Mot de passe incorrect.");
+      }
+    });
+
+    function loadAdminStats() {
+      document.getElementById('statInscrits').innerText = users.length;
+      const today = new Date().toISOString().split('T')[0];
+      const todayLogins = logins.filter(l => l.date === today).length;
+      document.getElementById('statConnectes').innerText = todayLogins;
+    }
+
+    // Publication annonce avec fichier Photo/Vidéo
+    document.getElementById('publishPostBtn').addEventListener('click', () => {
+      const title = document.getElementById('postTitle').value.trim();
+      const content = document.getElementById('postContent').value.trim();
+      const fileInput = document.getElementById('postFileInput');
+      const file = fileInput.files[0];
+
+      if (!title || !content) {
+        alert("Veuillez saisir un titre et un contenu.");
+        return;
+      }
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          savePost(title, content, e.target.result, file.type);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        savePost(title, content, null, null);
+      }
+    });
+
+    function savePost(title, content, mediaData, mediaType) {
+      posts.unshift({
+        title,
+        content,
+        mediaData,
+        mediaType,
+        timestamp: Date.now()
+      });
+      localStorage.setItem('bde_posts', JSON.stringify(posts));
+      alert("Annonce publiée pour 7 jours !");
+      document.getElementById('postTitle').value = '';
+      document.getElementById('postContent').value = '';
+      document.getElementById('postFileInput').value = '';
+      renderAnnouncements();
+    }
+
+    // Publication Cours
+    document.getElementById('publishCourseBtn').addEventListener('click', () => {
+      const level = document.getElementById('courseLevel').value;
+      const title = document.getElementById('courseTitle').value.trim();
+      const url = document.getElementById('courseDriveUrl').value.trim();
+
+      if (!title || !url) {
+        alert("Veuillez remplir tous les champs.");
+        return;
+      }
+
+      courses.push({ level, title, url });
+      localStorage.setItem('bde_courses', JSON.stringify(courses));
+      alert(`Cours ajouté pour les étudiants en ${level} !`);
+      document.getElementById('courseTitle').value = '';
+      document.getElementById('courseDriveUrl').value = '';
+      renderCourses();
+    });
+
+    // Initialisation
+    checkUserSession();
+  </script>
+</body>
+</html>
