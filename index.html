@@ -6,7 +6,7 @@
   <title>Portail Officiel BDE EHES</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   
-  <!-- SCRIPTS FIREBASE (App, Auth & Database) -->
+  <!-- SCRIPTS FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
@@ -36,7 +36,6 @@
       color: var(--text);
     }
 
-    /* EN-TÊTE */
     header {
       background: linear-gradient(135deg, var(--primary), var(--primary-dark));
       color: white;
@@ -75,7 +74,6 @@
       backdrop-filter: blur(5px);
     }
 
-    /* NAVIGATION PAR ONGLETS */
     nav.tabs {
       display: flex;
       background-color: #fff;
@@ -123,7 +121,6 @@
       border-top: 5px solid var(--primary);
     }
 
-    /* BANNIÈRE D'ACCUEIL */
     .hero-banner {
       background: linear-gradient(135deg, rgba(128,0,32,0.95), rgba(92,0,23,0.9)), url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=80');
       background-size: cover;
@@ -192,7 +189,6 @@
       display: none !important;
     }
 
-    /* STATISTIQUES */
     .stat-box {
       display: inline-block;
       width: 48%;
@@ -210,7 +206,6 @@
       color: var(--primary);
     }
 
-    /* FIL D'ACTUALITÉS */
     .feed-item {
       border-bottom: 1px solid #f0f0f0;
       padding: 18px 0;
@@ -262,7 +257,6 @@
       font-weight: 600;
     }
 
-    /* CHAT, SUGGESTIONS & INSCRITS */
     .chat-box, .suggestion-box, .students-box {
       max-height: 380px;
       overflow-y: auto;
@@ -317,6 +311,17 @@
     .student-item:last-child {
       border-bottom: none;
     }
+
+    .major-badge {
+      display: inline-block;
+      background-color: #f0f4f8;
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-left: 6px;
+    }
   </style>
 </head>
 <body>
@@ -348,6 +353,13 @@
       <form id="authForm">
         <div id="registerFields" class="hidden">
           <input type="text" id="authName" placeholder="Nom et Prénom">
+          <select id="authMajor">
+            <option value="">-- Sélectionnez votre Filière --</option>
+            <option value="Pétrole et Gaz">Pétrole et Gaz</option>
+            <option value="Génie Civil">Génie Civil</option>
+            <option value="Gestion des Entreprises">Gestion des Entreprises</option>
+            <option value="Transport & Logistique">Transport & Logistique</option>
+          </select>
           <select id="authLevel">
             <option value="L1">Licence 1 (L1)</option>
             <option value="L2">Licence 2 (L2)</option>
@@ -358,7 +370,7 @@
           <input type="text" id="authCode" placeholder="Code d'activation étudiant (ex: EHES2026)">
         </div>
 
-        <input type="email" id="authEmail" placeholder="Adresse Email" required>
+        <input type="text" id="authUsername" placeholder="Nom d'utilisateur ou Identifiant" required>
         <input type="password" id="authPassword" placeholder="Mot de passe" required>
         
         <button type="submit" id="authSubmitBtn">Se connecter</button>
@@ -374,11 +386,11 @@
     <div id="homeTab" class="tab-content">
       <div class="hero-banner">
         <h2>Bienvenue sur le Portail BDE EHES</h2>
-        <p id="welcomeMsg" style="margin: 0; font-size: 1rem; opacity: 0.9;">Votre plateforme académique & vie étudiante</p>
+        <p id="welcomeMsg" style="margin: 0; font-size: 1rem; opacity: 0.9;">Votre plateforme académique &amp; vie étudiante</p>
       </div>
 
       <div class="card">
-        <h2>📢 Annonces & Actualités récentes</h2>
+        <h2>📢 Annonces &amp; Actualités récentes</h2>
         <div id="announcementsList">
           <!-- Publications -->
         </div>
@@ -388,7 +400,18 @@
     <!-- ONGLET 2 : COURS ET TDS -->
     <div id="coursesTab" class="tab-content card hidden">
       <h2>📚 Ressources Académiques (<span id="userLevelDisplay">Non connecté</span>)</h2>
-      <p style="color: var(--light-text); font-size: 0.9rem;">Accédez aux supports de cours et travaux dirigés de votre niveau.</p>
+      <p style="color: var(--light-text); font-size: 0.9rem;">Accédez aux supports de cours et travaux dirigés de votre niveau et de votre filière.</p>
+      
+      <div style="margin: 15px 0; display: flex; gap: 10px;">
+        <select id="filterMajor" onchange="renderCourses()" style="margin:0;">
+          <option value="ALL">Toutes les Filières</option>
+          <option value="Pétrole et Gaz">Pétrole et Gaz</option>
+          <option value="Génie Civil">Génie Civil</option>
+          <option value="Gestion des Entreprises">Gestion des Entreprises</option>
+          <option value="Transport & Logistique">Transport & Logistique</option>
+        </select>
+      </div>
+
       <hr style="border: none; border-top: 1px solid #eee; margin: 15px 0;">
       <div id="coursesList">
         <!-- Liste des cours -->
@@ -461,6 +484,12 @@
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
 
         <h3>📚 Ajouter un Cours / TD</h3>
+        <select id="courseMajor">
+          <option value="Pétrole et Gaz">Pétrole et Gaz</option>
+          <option value="Génie Civil">Génie Civil</option>
+          <option value="Gestion des Entreprises">Gestion des Entreprises</option>
+          <option value="Transport & Logistique">Transport & Logistique</option>
+        </select>
         <select id="courseLevel">
           <option value="L1">Licence 1 (L1)</option>
           <option value="L2">Licence 2 (L2)</option>
@@ -487,12 +516,9 @@
   </div>
 
   <script>
-    // CODE DE VALIDATION ÉTUDIANT SECRET
     const STUDENT_SECRET_CODE = "EHES2026";
-    // MOT DE PASSE ADMIN
     const ADMIN_PASSWORD = "EHES_bde@2026!";
 
-    // INITIALISATION FIREBASE
     const firebaseConfig = {
       apiKey: "AIzaSyA86vCNL-tF9AVh8-ehKhcEnKjpXmGMQWI",
       authDomain: "bde-ehes.firebaseapp.com",
@@ -506,13 +532,10 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const auth = firebase.auth();
 
-    // VARIABLES DE SESSION
     let currentProfile = null;
     let isRegisterMode = false;
 
-    // RÉFÉRENCES BASE DE DONNÉES TEMPS RÉEL
     let usersList = {};
     let postsList = {};
     let coursesList = {};
@@ -520,30 +543,12 @@
     let suggestionsList = {};
     let loginsList = {};
 
-    // GESTION DE L'AUTHENTIFICATION EN TEMPS RÉEL
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        if (!user.emailVerified) {
-          auth.signOut();
-          currentProfile = null;
-          alert("Votre e-mail n'a pas encore été vérifié ! Veuillez cliquer sur le lien envoyé dans votre boîte mail.");
-          checkUserSession();
-          return;
-        }
+    // Charger session locale
+    const savedUser = localStorage.getItem('ehes_user');
+    if (savedUser) {
+      currentProfile = JSON.parse(savedUser);
+    }
 
-        // Récupérer le profil dans la base
-        db.ref('users/' + user.uid).once('value', (snapshot) => {
-          currentProfile = snapshot.val();
-          registerLogin();
-          checkUserSession();
-        });
-      } else {
-        currentProfile = null;
-        checkUserSession();
-      }
-    });
-
-    // ÉCOUTEURS BASE DE DONNÉES
     db.ref('users').on('value', (snapshot) => {
       usersList = snapshot.val() || {};
       loadAdminStats();
@@ -575,7 +580,6 @@
       loadAdminStats();
     });
 
-    // CHANGER D'ONGLET
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -586,7 +590,6 @@
       }
     }
 
-    // ÉLÉMENTS DOM
     const authSection = document.getElementById('authSection');
     const authForm = document.getElementById('authForm');
     const authTitle = document.getElementById('authTitle');
@@ -603,7 +606,6 @@
     const logoutSection = document.getElementById('logoutSection');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    // TOGGLE INSCRIPTION / CONNEXION
     toggleAuthLink.addEventListener('click', (e) => {
       e.preventDefault();
       isRegisterMode = !isRegisterMode;
@@ -622,15 +624,15 @@
       }
     });
 
-    // SOUMISSION CONNEXION / INSCRIPTION
     authForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const email = document.getElementById('authEmail').value.trim();
+      const username = document.getElementById('authUsername').value.trim();
       const password = document.getElementById('authPassword').value;
 
       if (isRegisterMode) {
         const name = document.getElementById('authName').value.trim();
         const level = document.getElementById('authLevel').value;
+        const major = document.getElementById('authMajor').value;
         const code = document.getElementById('authCode').value.trim();
 
         if (code !== STUDENT_SECRET_CODE) {
@@ -638,60 +640,82 @@
           return;
         }
 
-        if (!name) {
-          alert("Veuillez saisir votre nom et prénom.");
+        if (!name || !major) {
+          alert("Veuillez saisir votre nom et sélectionner votre filière.");
           return;
         }
 
-        auth.createUserWithEmailAndPassword(email, password)
-          .then((userCredential) => {
-            const user = userCredential.user;
-            // Envoi mail de vérification
-            user.sendEmailVerification();
+        const userId = 'user_' + Date.now();
+        const newUser = {
+          id: userId,
+          name: name,
+          username: username,
+          password: password,
+          level: level,
+          major: major
+        };
 
-            // Enregistrer le profil utilisateur
-            db.ref('users/' + user.uid).set({
-              name: name,
-              email: email,
-              level: level
-            });
-
-            alert("Compte créé avec succès ! Un e-mail de confirmation vient d'être envoyé à " + email + ". Veuillez cliquer sur le lien pour activer votre accès.");
-            auth.signOut();
-            isRegisterMode = false;
-            authTitle.innerText = "Espace Connexion";
-            registerFields.classList.add('hidden');
-            authSubmitBtn.innerText = "Se connecter";
-          })
-          .catch((error) => {
-            alert("Erreur d'inscription : " + error.message);
-          });
+        db.ref('users/' + userId).set(newUser, (error) => {
+          if (error) {
+            alert("Erreur lors de l'inscription : " + error.message);
+          } else {
+            currentProfile = newUser;
+            localStorage.setItem('ehes_user', JSON.stringify(newUser));
+            registerLogin();
+            checkUserSession();
+            alert("Compte créé avec succès ! Bienvenue " + name);
+          }
+        });
 
       } else {
-        auth.signInWithEmailAndPassword(email, password)
-          .catch((error) => {
-            alert("Erreur de connexion : " + error.message);
-          });
+        db.ref('users').once('value', (snapshot) => {
+          const users = snapshot.val() || {};
+          let foundUser = null;
+
+          for (let id in users) {
+            if (users[id].username === username && users[id].password === password) {
+              foundUser = users[id];
+              break;
+            }
+          }
+
+          if (foundUser) {
+            currentProfile = foundUser;
+            localStorage.setItem('ehes_user', JSON.stringify(foundUser));
+            registerLogin();
+            checkUserSession();
+            alert("Connexion réussie !");
+          } else {
+            alert("Nom d'utilisateur ou mot de passe incorrect.");
+          }
+        });
       }
     });
 
     function registerLogin() {
       if (!currentProfile) return;
       const today = new Date().toISOString().split('T')[0];
-      db.ref('logins').push({ email: currentProfile.email, date: today });
+      db.ref('logins').push({ username: currentProfile.username, date: today });
     }
 
     logoutBtn.addEventListener('click', () => {
-      auth.signOut();
+      currentProfile = null;
+      localStorage.removeItem('ehes_user');
+      checkUserSession();
     });
 
     function checkUserSession() {
       if (currentProfile) {
         authSection.classList.add('hidden');
         logoutSection.classList.remove('hidden');
-        userStatus.innerText = `👤 ${currentProfile.name} (${currentProfile.level})`;
+        userStatus.innerText = `👤 ${currentProfile.name} (${currentProfile.level} - ${currentProfile.major})`;
         welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
-        userLevelDisplay.innerText = currentProfile.level;
+        userLevelDisplay.innerText = `${currentProfile.level} - ${currentProfile.major}`;
+
+        // Auto-sélection de sa filière dans les filtres
+        if (document.getElementById('filterMajor')) {
+          document.getElementById('filterMajor').value = currentProfile.major;
+        }
 
         document.getElementById('chatContainer').classList.remove('hidden');
         document.getElementById('chatGuestWarning').classList.add('hidden');
@@ -710,7 +734,6 @@
       renderChat();
     }
 
-    // FORMAT DRIVE
     function formatDriveLink(url) {
       if (url.includes('drive.google.com') && url.includes('/d/')) {
         const fileId = url.split('/d/')[1].split('/')[0];
@@ -719,7 +742,7 @@
       return url;
     }
 
-    // COURS
+    // COURS AVEC FILTRE ET CLASSEMENT PAR FILIÈRE
     function renderCourses() {
       if (!currentProfile) {
         coursesContainer.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
@@ -727,21 +750,48 @@
       }
       
       const allCourses = Object.values(coursesList);
-      const userCourses = allCourses.filter(c => c.level === currentProfile.level);
+      const selectedMajor = document.getElementById('filterMajor').value;
 
-      coursesContainer.innerHTML = userCourses.length ? '' : '<p style="color:var(--light-text);">Aucun cours mis en ligne pour votre niveau.</p>';
+      // Filtrer par niveau
+      let userCourses = allCourses.filter(c => c.level === currentProfile.level);
+
+      // Filtrer par filière si spécifique
+      if (selectedMajor !== 'ALL') {
+        userCourses = userCourses.filter(c => c.major === selectedMajor);
+      }
+
+      if (!userCourses.length) {
+        coursesContainer.innerHTML = '<p style="color:var(--light-text);">Aucun cours mis en ligne pour ce niveau ou cette filière.</p>';
+        return;
+      }
+
+      // Regroupement par Filière
+      const grouped = {};
       userCourses.forEach(c => {
-        const downloadUrl = formatDriveLink(c.url);
-        coursesContainer.innerHTML += `
-          <div style="background:#fdfbf7; padding:15px; margin-bottom:12px; border-left:4px solid var(--secondary); border-radius:8px;">
-            <strong>${c.title}</strong><br>
-            <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Télécharger le document</a>
-          </div>
-        `;
+        const majorKey = c.major || "Général";
+        if (!grouped[majorKey]) grouped[majorKey] = [];
+        grouped[majorKey].push(c);
       });
+
+      let html = '';
+      for (let major in grouped) {
+        html += `<div class="level-group">`;
+        html += `<div class="level-title">📂 ${major}</div>`;
+        grouped[major].forEach(c => {
+          const downloadUrl = formatDriveLink(c.url);
+          html += `
+            <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px;">
+              <strong>${c.title}</strong><br>
+              <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Télécharger le document</a>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      coursesContainer.innerHTML = html;
     }
 
-    // ANNONCES (Purge > 7j)
     function renderAnnouncements() {
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
       const allPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
@@ -773,7 +823,6 @@
       });
     }
 
-    // FORUM
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
     const chatBox = document.getElementById('chatBox');
@@ -789,6 +838,7 @@
       db.ref('messages').push({
         sender: currentProfile.name,
         level: currentProfile.level,
+        major: currentProfile.major,
         text: text,
         time: timeStr,
         timestamp: Date.now()
@@ -803,10 +853,11 @@
 
       chatBox.innerHTML = msgs.length ? '' : '<p style="color:var(--light-text);">Aucun message pour le moment.</p>';
       msgs.forEach(m => {
+        const majorInfo = m.major ? ` - ${m.major}` : '';
         chatBox.innerHTML += `
           <div class="chat-msg">
             <span class="chat-time">${m.time}</span>
-            <strong>${m.sender} (${m.level})</strong>
+            <strong>${m.sender} (${m.level}${majorInfo})</strong>
             <div style="margin-top: 3px;">${m.text}</div>
           </div>
         `;
@@ -814,14 +865,13 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // SUGGESTIONS
     document.getElementById('suggestForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const title = document.getElementById('suggestTitle').value.trim();
       const content = document.getElementById('suggestContent').value.trim();
       const isAnon = document.getElementById('suggestAnon').checked;
 
-      const author = (isAnon || !currentProfile) ? "Anonyme" : `${currentProfile.name} (${currentProfile.level})`;
+      const author = (isAnon || !currentProfile) ? "Anonyme" : `${currentProfile.name} (${currentProfile.level} - ${currentProfile.major})`;
 
       db.ref('suggestions').push({
         author,
@@ -837,7 +887,6 @@
       document.getElementById('suggestAnon').checked = false;
     });
 
-    // ADMIN
     const adminAuth = document.getElementById('adminAuth');
     const adminPanel = document.getElementById('adminPanel');
     const adminPassInput = document.getElementById('adminPassInput');
@@ -883,7 +932,8 @@
           html += `<div class="level-group">`;
           html += `<div class="level-title">🎓 Niveau ${lvl} (${list.length})</div>`;
           list.forEach(st => {
-            html += `<div class="student-item">👤 <strong>${st.name}</strong> — <span style="color:var(--light-text);">${st.email}</span></div>`;
+            const majorText = st.major ? `<span class="major-badge">${st.major}</span>` : '';
+            html += `<div class="student-item">👤 <strong>${st.name}</strong> ${majorText}</div>`;
           });
           html += `</div>`;
         }
@@ -908,7 +958,6 @@
       });
     }
 
-    // PUBLIER ANNONCE
     document.getElementById('publishPostBtn').addEventListener('click', () => {
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
@@ -945,8 +994,8 @@
       document.getElementById('postFileInput').value = '';
     }
 
-    // PUBLIER COURS
     document.getElementById('publishCourseBtn').addEventListener('click', () => {
+      const major = document.getElementById('courseMajor').value;
       const level = document.getElementById('courseLevel').value;
       const title = document.getElementById('courseTitle').value.trim();
       const url = document.getElementById('courseDriveUrl').value.trim();
@@ -956,11 +1005,13 @@
         return;
       }
 
-      db.ref('courses').push({ level, title, url });
-      alert(`Cours ajouté pour le niveau ${level} !`);
+      db.ref('courses').push({ major, level, title, url });
+      alert(`Cours ajouté pour ${major} - ${level} !`);
       document.getElementById('courseTitle').value = '';
       document.getElementById('courseDriveUrl').value = '';
     });
+
+    checkUserSession();
   </script>
 </body>
 </html>
