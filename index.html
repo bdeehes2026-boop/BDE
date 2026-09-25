@@ -6,8 +6,9 @@
   <title>Portail Officiel BDE EHES</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
   
-  <!-- SCRIPTS FIREBASE (Compatibilité Web CDN) -->
+  <!-- SCRIPTS FIREBASE (App, Auth & Database) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <style>
@@ -354,6 +355,7 @@
             <option value="M1">Master 1 (M1)</option>
             <option value="M2">Master 2 (M2)</option>
           </select>
+          <input type="text" id="authCode" placeholder="Code d'activation étudiant (ex: EHES2026)">
         </div>
 
         <input type="email" id="authEmail" placeholder="Adresse Email" required>
@@ -485,6 +487,11 @@
   </div>
 
   <script>
+    // CODE DE VALIDATION ÉTUDIANT SECRET
+    const STUDENT_SECRET_CODE = "EHES2026";
+    // MOT DE PASSE ADMIN
+    const ADMIN_PASSWORD = "EHES_bde@2026!";
+
     // INITIALISATION FIREBASE
     const firebaseConfig = {
       apiKey: "AIzaSyA86vCNL-tF9AVh8-ehKhcEnKjpXmGMQWI",
@@ -499,9 +506,10 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const auth = firebase.auth();
 
-    // VARIABLES DE SESSION LOCALE
-    let currentUser = JSON.parse(localStorage.getItem('bde_current_user')) || null;
+    // VARIABLES DE SESSION
+    let currentProfile = null;
     let isRegisterMode = false;
 
     // RÉFÉRENCES BASE DE DONNÉES TEMPS RÉEL
@@ -512,7 +520,30 @@
     let suggestionsList = {};
     let loginsList = {};
 
-    // ECOUTEURS DE CHANGEMENT TEMPS RÉEL FIREBASE
+    // GESTION DE L'AUTHENTIFICATION EN TEMPS RÉEL
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        if (!user.emailVerified) {
+          auth.signOut();
+          currentProfile = null;
+          alert("Votre e-mail n'a pas encore été vérifié ! Veuillez cliquer sur le lien envoyé dans votre boîte mail.");
+          checkUserSession();
+          return;
+        }
+
+        // Récupérer le profil dans la base
+        db.ref('users/' + user.uid).once('value', (snapshot) => {
+          currentProfile = snapshot.val();
+          registerLogin();
+          checkUserSession();
+        });
+      } else {
+        currentProfile = null;
+        checkUserSession();
+      }
+    });
+
+    // ÉCOUTEURS BASE DE DONNÉES
     db.ref('users').on('value', (snapshot) => {
       usersList = snapshot.val() || {};
       loadAdminStats();
@@ -600,52 +631,67 @@
       if (isRegisterMode) {
         const name = document.getElementById('authName').value.trim();
         const level = document.getElementById('authLevel').value;
+        const code = document.getElementById('authCode').value.trim();
 
-        // Vérification présence
-        const existing = Object.values(usersList).find(u => u.email === email);
-        if (existing) {
-          alert("Un compte existe déjà avec cet e-mail.");
+        if (code !== STUDENT_SECRET_CODE) {
+          alert("Code d'activation étudiant incorrect ! Demandez-le au BDE.");
           return;
         }
 
-        const newUser = { name, email, password, level };
-        db.ref('users').push(newUser);
-
-        currentUser = newUser;
-        localStorage.setItem('bde_current_user', JSON.stringify(currentUser));
-        registerLogin();
-        checkUserSession();
-      } else {
-        const user = Object.values(usersList).find(u => u.email === email && u.password === password);
-        if (user) {
-          currentUser = user;
-          localStorage.setItem('bde_current_user', JSON.stringify(currentUser));
-          registerLogin();
-          checkUserSession();
-        } else {
-          alert("E-mail ou mot de passe incorrect.");
+        if (!name) {
+          alert("Veuillez saisir votre nom et prénom.");
+          return;
         }
+
+        auth.createUserWithEmailAndPassword(email, password)
+          .then((userCredential) => {
+            const user = userCredential.user;
+            // Envoi mail de vérification
+            user.sendEmailVerification();
+
+            // Enregistrer le profil utilisateur
+            db.ref('users/' + user.uid).set({
+              name: name,
+              email: email,
+              level: level
+            });
+
+            alert("Compte créé avec succès ! Un e-mail de confirmation vient d'être envoyé à " + email + ". Veuillez cliquer sur le lien pour activer votre accès.");
+            auth.signOut();
+            isRegisterMode = false;
+            authTitle.innerText = "Espace Connexion";
+            registerFields.classList.add('hidden');
+            authSubmitBtn.innerText = "Se connecter";
+          })
+          .catch((error) => {
+            alert("Erreur d'inscription : " + error.message);
+          });
+
+      } else {
+        auth.signInWithEmailAndPassword(email, password)
+          .catch((error) => {
+            alert("Erreur de connexion : " + error.message);
+          });
       }
     });
 
     function registerLogin() {
+      if (!currentProfile) return;
       const today = new Date().toISOString().split('T')[0];
-      db.ref('logins').push({ email: currentUser.email, date: today });
+      db.ref('logins').push({ email: currentProfile.email, date: today });
     }
 
     logoutBtn.addEventListener('click', () => {
-      currentUser = null;
-      localStorage.removeItem('bde_current_user');
-      checkUserSession();
+      auth.signOut();
     });
 
     function checkUserSession() {
-      if (currentUser) {
+      if (currentProfile) {
         authSection.classList.add('hidden');
         logoutSection.classList.remove('hidden');
-        userStatus.innerText = `👤 ${currentUser.name} (${currentUser.level})`;
-        welcomeMsg.innerText = `Ravi de vous revoir, ${currentUser.name} !`;
-        userLevelDisplay.innerText = currentUser.level;
+        userStatus.innerText = `👤 ${currentProfile.name} (${currentProfile.level})`;
+        welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
+        userLevelDisplay.innerText = currentProfile.level;
 
         document.getElementById('chatContainer').classList.remove('hidden');
         document.getElementById('chatGuestWarning').classList.add('hidden');
@@ -673,15 +719,15 @@
       return url;
     }
 
-    // AFFICHAGE DES COURS EN TEMPS RÉEL
+    // COURS
     function renderCourses() {
-      if (!currentUser) {
+      if (!currentProfile) {
         coursesContainer.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
         return;
       }
       
       const allCourses = Object.values(coursesList);
-      const userCourses = allCourses.filter(c => c.level === currentUser.level);
+      const userCourses = allCourses.filter(c => c.level === currentProfile.level);
 
       coursesContainer.innerHTML = userCourses.length ? '' : '<p style="color:var(--light-text);">Aucun cours mis en ligne pour votre niveau.</p>';
       userCourses.forEach(c => {
@@ -695,7 +741,7 @@
       });
     }
 
-    // AFFICHAGE DES ANNONCES EN TEMPS RÉEL (Purge > 7 jours)
+    // ANNONCES (Purge > 7j)
     function renderAnnouncements() {
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
       const allPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
@@ -727,22 +773,22 @@
       });
     }
 
-    // FORUM EN TEMPS RÉEL
+    // FORUM
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
     const chatBox = document.getElementById('chatBox');
 
     chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      if (!currentUser) return;
+      if (!currentProfile) return;
 
       const text = chatInput.value.trim();
       if (!text) return;
 
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       db.ref('messages').push({
-        sender: currentUser.name,
-        level: currentUser.level,
+        sender: currentProfile.name,
+        level: currentProfile.level,
         text: text,
         time: timeStr,
         timestamp: Date.now()
@@ -775,7 +821,7 @@
       const content = document.getElementById('suggestContent').value.trim();
       const isAnon = document.getElementById('suggestAnon').checked;
 
-      const author = (isAnon || !currentUser) ? "Anonyme" : `${currentUser.name} (${currentUser.level})`;
+      const author = (isAnon || !currentProfile) ? "Anonyme" : `${currentProfile.name} (${currentProfile.level})`;
 
       db.ref('suggestions').push({
         author,
@@ -798,14 +844,14 @@
     const adminLoginBtn = document.getElementById('adminLoginBtn');
 
     adminLoginBtn.addEventListener('click', () => {
-      if (adminPassInput.value === 'bde2026') {
+      if (adminPassInput.value === ADMIN_PASSWORD) {
         adminAuth.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         loadAdminStats();
         renderAdminStudents();
         renderAdminSuggestions();
       } else {
-        alert("Mot de passe incorrect.");
+        alert("Mot de passe Administrateur incorrect.");
       }
     });
 
@@ -893,7 +939,7 @@
         mediaType,
         timestamp: Date.now()
       });
-      alert("Annonce publiée en ligne ! Tous les étudiants la voient désormais.");
+      alert("Annonce publiée en ligne !");
       document.getElementById('postTitle').value = '';
       document.getElementById('postContent').value = '';
       document.getElementById('postFileInput').value = '';
@@ -911,13 +957,10 @@
       }
 
       db.ref('courses').push({ level, title, url });
-      alert(`Cours ajouté pour le niveau ${level} ! Visible immédiatement par les étudiants.`);
+      alert(`Cours ajouté pour le niveau ${level} !`);
       document.getElementById('courseTitle').value = '';
       document.getElementById('courseDriveUrl').value = '';
     });
-
-    // DEMARRAGE
-    checkUserSession();
   </script>
 </body>
 </html>
