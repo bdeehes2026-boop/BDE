@@ -435,7 +435,7 @@
     <div id="authSection" class="card">
       <h2 id="authTitle">Espace Connexion</h2>
       
-      <form id="authForm">
+      <form id="authForm" onsubmit="handleAuthSubmit(event)">
         <div id="registerFields" class="hidden">
           <input type="text" id="authName" placeholder="Nom et Prénom">
           <select id="authMajor">
@@ -463,7 +463,7 @@
 
       <p style="text-align: center; margin-top: 15px; font-size: 0.9rem;">
         <span id="toggleAuthText">Nouveau sur le portail ?</span>
-        <a href="#" id="toggleAuthLink" style="color: var(--primary); font-weight: 600; text-decoration: none;">Créer un compte</a>
+        <a href="#" id="toggleAuthLink" onclick="toggleAuthMode(event)" style="color: var(--primary); font-weight: 600; text-decoration: none;">Créer un compte</a>
       </p>
     </div>
 
@@ -726,7 +726,6 @@
 
   <script>
     const STUDENT_SECRET_CODE = "EHES2026";
-    // Hachage de sécurité pour validation Admin
     const ADMIN_HASH = "Bde2026"; 
 
     const firebaseConfig = {
@@ -819,12 +818,11 @@
     }
 
     const authSection = document.getElementById('authSection');
-    const authForm = document.getElementById('authForm');
     const authTitle = document.getElementById('authTitle');
     const registerFields = document.getElementById('registerFields');
     const authSubmitBtn = document.getElementById('authSubmitBtn');
-    const toggleAuthLink = document.getElementById('toggleAuthLink');
     const toggleAuthText = document.getElementById('toggleAuthText');
+    const toggleAuthLink = document.getElementById('toggleAuthLink');
 
     const userStatus = document.getElementById('userStatus');
     const welcomeMsg = document.getElementById('welcomeMsg');
@@ -834,7 +832,7 @@
     const logoutSection = document.getElementById('logoutSection');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    toggleAuthLink.addEventListener('click', (e) => {
+    function toggleAuthMode(e) {
       e.preventDefault();
       isRegisterMode = !isRegisterMode;
       if (isRegisterMode) {
@@ -850,12 +848,17 @@
         toggleAuthText.innerText = "Nouveau sur le portail ?";
         toggleAuthLink.innerText = "Créer un compte";
       }
-    });
+    }
 
-    authForm.addEventListener('submit', (e) => {
+    function handleAuthSubmit(e) {
       e.preventDefault();
       const username = document.getElementById('authUsername').value.trim();
-      const password = document.getElementById('authPassword').value;
+      const password = document.getElementById('authPassword').value.trim();
+
+      if (!username || !password) {
+        alert("Veuillez remplir l'identifiant et le mot de passe.");
+        return;
+      }
 
       if (isRegisterMode) {
         const name = document.getElementById('authName').value.trim();
@@ -878,7 +881,7 @@
           let exists = false;
 
           for (let id in users) {
-            if (users[id].username.toLowerCase() === username.toLowerCase()) {
+            if (users[id].username && users[id].username.toLowerCase().trim() === username.toLowerCase()) {
               exists = true;
               break;
             }
@@ -917,9 +920,12 @@
           const users = snapshot.val() || {};
           let foundUser = null;
 
+          const cleanUsername = username.toLowerCase();
+
           for (let id in users) {
-            if (users[id].username.toLowerCase() === username.toLowerCase() && users[id].password === password) {
-              foundUser = users[id];
+            const u = users[id];
+            if (u.username && u.username.toLowerCase().trim() === cleanUsername && u.password && u.password.trim() === password) {
+              foundUser = u;
               break;
             }
           }
@@ -929,13 +935,13 @@
             localStorage.setItem('ehes_user', JSON.stringify(foundUser));
             registerLogin();
             checkUserSession();
-            alert("Connexion réussie !");
+            alert("Connexion réussie ! Bienvenue " + foundUser.name);
           } else {
             alert("Nom d'utilisateur ou mot de passe incorrect.");
           }
         });
       }
-    });
+    }
 
     function registerLogin() {
       if (!currentProfile) return;
