@@ -8,10 +8,17 @@
   
   <!-- SCRIPTS FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <!-- SDK Firebase Messaging (Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+  <!-- CONFIGURATION PWA & IPAD / MOBILE -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EHES BDE">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="theme-color" content="#1e3a8a">
 
   <style>
     :root {
@@ -124,15 +131,7 @@
     .modal-content { background: white; padding: 20px; border-radius: 12px; max-width: 500px; width: 92%; max-height: 85vh; overflow-y: auto; }
   </style>
 </head>
-  <!-- Fichier de configuration PWA -->
-<link rel="manifest" href="./manifest.json">
 
-<!-- Configuration pour que l'application s'affiche bien sur iPhone/Android -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="EHES BDE">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="theme-color" content="#1e3a8a">
 <body>
   <header>
     <div class="brand">
@@ -481,29 +480,6 @@
   </div>
 
   <script>
-    // Initialisation du service de messagerie Firebase
-    if (firebase.apps.length) {
-        const messaging = firebase.messaging();
-        
-        // Demande d'autorisation pour les notifications
-        messaging.requestPermission()
-            .then(() => messaging.getToken())
-            .then((token) => {
-                console.log("Jeton de notification FCM :", token);
-            })
-            .catch((err) => {
-                console.warn("Autorisation de notification refusée ou indisponible :", err);
-            });
-
-        // Réception des messages lorsque l'application est au premier plan
-        messaging.onMessage((payload) => {
-            console.log("Message reçu en direct :", payload);
-            if (payload.notification) {
-                alert(`${payload.notification.title}\n${payload.notification.body}`);
-            }
-        });
-    }
-
     const STUDENT_SECRET_CODE = "EHES2026";
     const ADMIN_SECRET_CODE = "Bde2026"; 
 
@@ -520,6 +496,23 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
+    // Initialisation FCM (Service de notifications)
+    try {
+      const messaging = firebase.messaging();
+      messaging.requestPermission()
+        .then(() => messaging.getToken())
+        .then((token) => console.log("Jeton de notification FCM :", token))
+        .catch((err) => console.warn("Avis FCM : Notifications désactivées ou non supportées."));
+
+      messaging.onMessage((payload) => {
+        if (payload.notification) {
+          alert(`${payload.notification.title}\n${payload.notification.body}`);
+        }
+      });
+    } catch (err) {
+      console.warn("FCM n'est pas supporté par ce navigateur.");
+    }
 
     let currentProfile = null;
     let isRegisterMode = false;
@@ -541,6 +534,7 @@
       currentProfile = JSON.parse(savedUser);
     }
 
+    // Synchronisation en temps réel Firebase Realtime Database
     db.ref('users').on('value', (snapshot) => {
       usersList = snapshot.val() || {};
       loadAdminStats();
@@ -1049,7 +1043,6 @@
     }
 
     function openNotifs() {
-      // Le bouton notification revient à zéro dès qu'on y appuie
       unreadNotifCount = 0;
       const badge = document.getElementById('notifBadge');
       badge.style.display = 'none';
@@ -1280,7 +1273,6 @@
       let nextLevel = student.level;
       const major = student.major;
 
-      // Règles de passage en classe supérieure
       if (major === "Gestion des Entreprises" || major === "Transport & Logistique") {
         if (student.level === "L1") nextLevel = "L2";
         else if (student.level === "L2") nextLevel = "L3";
@@ -1290,7 +1282,7 @@
         else if (student.level === "L2") nextLevel = "L3";
         else if (student.level === "L3") nextLevel = "M1";
         else if (student.level === "M1") nextLevel = "Alumni";
-      } else { // Génie Civil et autres filières standards
+      } else {
         if (student.level === "L1") nextLevel = "L2";
         else if (student.level === "L2") nextLevel = "L3";
         else if (student.level === "L3") nextLevel = "M1";
@@ -1455,7 +1447,6 @@
       }
     }
 
-    // Publication de notification globale par l'Admin
     document.getElementById('sendGlobalNotifBtn').addEventListener('click', () => {
       const title = document.getElementById('adminNotifTitle').value.trim();
       const body = document.getElementById('adminNotifBody').value.trim();
@@ -1617,41 +1608,16 @@
       }
     }
 
-    // Sauvegarde et rechargement dynamique des données locales
-    function saveLocalData(key, data) {
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-        } catch (e) {
-            console.error("Erreur lors de la sauvegarde locale :", e);
-        }
-    }
-
-    function getLocalData(key) {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : null;
-    }
-
-    // Exemple de gestionnaire pour la modération du forum
-    function deleteForumPost(postId) {
-        if (confirm("Voulez-vous vraiment supprimer ce message ?")) {
-            const postRef = firebase.database().ref('forum/' + postId);
-            postRef.remove()
-                .then(() => console.log("Message supprimé avec succès."))
-                .catch((err) => console.error("Erreur de suppression :", err));
-        }
+    // Enregistrement du Service Worker PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((reg) => console.log('Service Worker PWA prêt !', reg.scope))
+          .catch((err) => console.error('Erreur PWA :', err));
+      });
     }
 
     checkUserSession();
   </script>
-  <script>
-  // Enregistrement du Service Worker PWA
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then((reg) => console.log('Service Worker PWA prêt !', reg.scope))
-        .catch((err) => console.error('Erreur PWA :', err));
-    });
-  }
-</script>
 </body>
 </html>
