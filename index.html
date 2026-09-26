@@ -460,6 +460,29 @@
   </div>
 
   <script>
+    // Initialisation du service de messagerie Firebase
+    if (firebase.apps.length) {
+        const messaging = firebase.messaging();
+        
+        // Demande d'autorisation pour les notifications
+        messaging.requestPermission()
+            .then(() => messaging.getToken())
+            .then((token) => {
+                console.log("Jeton de notification FCM :", token);
+            })
+            .catch((err) => {
+                console.warn("Autorisation de notification refusée ou indisponible :", err);
+            });
+
+        // Réception des messages lorsque l'application est au premier plan
+        messaging.onMessage((payload) => {
+            console.log("Message reçu en direct :", payload);
+            if (payload.notification) {
+                alert(`${payload.notification.title}\n${payload.notification.body}`);
+            }
+        });
+    }
+
     const STUDENT_SECRET_CODE = "EHES2026";
     const ADMIN_SECRET_CODE = "Bde2026"; 
 
@@ -1453,6 +1476,30 @@
       document.getElementById('schedTitle').value = '';
       document.getElementById('schedDriveUrl').value = '';
     });
+
+    // Sauvegarde et rechargement dynamique des données locales
+    function saveLocalData(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+        } catch (e) {
+            console.error("Erreur lors de la sauvegarde locale :", e);
+        }
+    }
+
+    function getLocalData(key) {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+    }
+
+    // Exemple de gestionnaire pour la modération du forum
+    function deleteForumPost(postId) {
+        if (confirm("Voulez-vous vraiment supprimer ce message ?")) {
+            const postRef = firebase.database().ref('forum/' + postId);
+            postRef.remove()
+                .then(() => console.log("Message supprimé avec succès."))
+                .catch((err) => console.error("Erreur de suppression :", err));
+        }
+    }
 
     checkUserSession();
   </script>
