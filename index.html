@@ -654,7 +654,120 @@
         toggleAuthLink.innerText = "Créer un compte";
       }
     }
+function handleAuthSubmit(e) {
+      e.preventDefault();
+      const username = document.getElementById('authUsername').value.trim(); // Utilisé comme adresse e-mail
+      const password = document.getElementById('authPassword').value.trim();
 
+      if (!username || !password) {
+        alert("Veuillez remplir l'adresse e-mail/identifiant et le mot de passe.");
+        return;
+      }
+
+      if (isRegisterMode) {
+        const name = document.getElementById('authName').value.trim();
+        const role = document.getElementById('authRole').value;
+        const code = document.getElementById('authCode').value.trim();
+
+        if (role === 'admin') {
+          if (code !== ADMIN_SECRET_CODE) {
+            alert("Code d'activation Administrateur incorrect !");
+            return;
+          }
+        } else {
+          if (code !== STUDENT_SECRET_CODE) {
+            alert("Code d'activation étudiant incorrect ! Demandez-le au BDE.");
+            return;
+          }
+        }
+
+        if (!name) {
+          alert("Veuillez saisir votre nom et prénom.");
+          return;
+        }
+
+        const level = (role === 'admin') ? "ADMIN" : document.getElementById('authLevel').value;
+        const major = (role === 'admin') ? "Administration BDE" : document.getElementById('authMajor').value;
+
+        if (role === 'student' && !major) {
+          alert("Veuillez sélectionner votre filière.");
+          return;
+        }
+
+        // 1. CRÉATION DU COMPTE OFFICIEL DANS FIREBASE AUTH (avec envoi d'e-mail de vérification)
+        firebase.auth().createUserWithEmailAndPassword(username, password)
+          .then((userCredential) => {
+            const authUser = userCredential.user;
+
+            // Envoi de l'e-mail de vérification à l'adresse saisie
+            authUser.sendEmailVerification().then(() => {
+              // 2. Sauvegarde des informations du profil dans la Realtime Database
+              const userId = authUser.uid;
+              const newUser = {
+                id: userId,
+                name: name,
+                username: username,
+                email: username,
+                level: level,
+                major: major,
+                role: role
+              };
+
+              db.ref('users/' + userId).set(newUser, (error) => {
+                if (error) {
+                  alert("Erreur lors de la sauvegarde du profil : " + error.message);
+                } else {
+                  firebase.auth().signOut(); // Déconnexion en attendant la vérification
+                  alert("Compte créé avec succès ! 📧 Un e-mail de confirmation a été envoyé à " + username + ". Veuillez cliquer sur le lien dans votre boîte mail pour activer votre compte avant de vous connecter.");
+                  toggleAuthMode(e); // Retour à l'écran de connexion
+                }
+              });
+            });
+          })
+          .catch((error) => {
+            alert("Erreur lors de l'inscription : " + error.message);
+          });
+
+      } else {
+        // 3. CONNEXION SÉCURISÉE AVEC VÉRIFICATION DE L'E-MAIL
+        firebase.auth().signInWithEmailAndPassword(username, password)
+          .then((userCredential) => {
+            const authUser = userCredential.user;
+
+            // Vérification si l'e-mail a été réellement confirmé par l'utilisateur
+            if (!authUser.emailVerified) {
+              alert("⚠️ Votre adresse e-mail n'a pas encore été vérifiée ! Veuillez consulter votre boîte de réception et cliquer sur le lien de confirmation.");
+              firebase.auth().signOut();
+              return;
+            }
+
+            // Récupération des données du profil depuis Realtime Database
+            db.ref('users/' + authUser.uid).once('value', (snapshot) => {
+              const profileData = snapshot.val();
+              if (profileData) {
+                currentProfile = profileData;
+              } else {
+                currentProfile = {
+                  id: authUser.uid,
+                  name: authUser.email.split('@')[0],
+                  username: authUser.email,
+                  role: 'student',
+                  level: 'L1',
+                  major: 'Non spécifié'
+                };
+              }
+
+              localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
+              registerLogin();
+              checkUserSession();
+              alert("Connexion réussie ! Bienvenue " + currentProfile.name);
+            });
+          })
+          .catch((error) => {
+            alert("Erreur de connexion : Adresse e-mail ou mot de passe incorrect.");
+          });
+      }
+    }
     function handleAuthSubmit(e) {
       e.preventDefault();
       const username = document.getElementById('authUsername').value.trim();
