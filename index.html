@@ -857,6 +857,7 @@
       }
     });
 
+    // INSCRIPTION ET VÉRIFICATION STRICTE ANTI-DOUBLONS
     authForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const username = document.getElementById('authUsername').value.trim();
@@ -878,26 +879,44 @@
           return;
         }
 
-        const userId = 'user_' + Date.now();
-        const newUser = {
-          id: userId,
-          name: name,
-          username: username,
-          password: password,
-          level: level,
-          major: major
-        };
+        // CONTROL D'UNICITÉ : Vérifie si le nom d'utilisateur existe déjà
+        db.ref('users').once('value', (snapshot) => {
+          const users = snapshot.val() || {};
+          let exists = false;
 
-        db.ref('users/' + userId).set(newUser, (error) => {
-          if (error) {
-            alert("Erreur lors de l'inscription : " + error.message);
-          } else {
-            currentProfile = newUser;
-            localStorage.setItem('ehes_user', JSON.stringify(newUser));
-            registerLogin();
-            checkUserSession();
-            alert("Compte créé avec succès ! Bienvenue " + name);
+          for (let id in users) {
+            if (users[id].username.toLowerCase() === username.toLowerCase()) {
+              exists = true;
+              break;
+            }
           }
+
+          if (exists) {
+            alert("Cet identifiant ou cet e-mail est déjà utilisé par un autre étudiant !");
+            return;
+          }
+
+          const userId = 'user_' + Date.now();
+          const newUser = {
+            id: userId,
+            name: name,
+            username: username,
+            password: password,
+            level: level,
+            major: major
+          };
+
+          db.ref('users/' + userId).set(newUser, (error) => {
+            if (error) {
+              alert("Erreur lors de l'inscription : " + error.message);
+            } else {
+              currentProfile = newUser;
+              localStorage.setItem('ehes_user', JSON.stringify(newUser));
+              registerLogin();
+              checkUserSession();
+              alert("Compte créé avec succès ! Bienvenue " + name);
+            }
+          });
         });
 
       } else {
@@ -1322,6 +1341,7 @@
       document.getElementById('statConnectes').innerText = todayLogins;
     }
 
+    // LISTE DES ÉTUDIANTS SANS DOUBLONS
     function renderAdminStudents() {
       const container = document.getElementById('adminStudentsList');
       const usersArray = Object.values(usersList);
@@ -1331,17 +1351,26 @@
         return;
       }
 
+      // DÉDOUBLONNAGE PAR IDENTIFIANT
+      const uniqueUsers = {};
+      usersArray.forEach(u => {
+        if (u.username) {
+          uniqueUsers[u.username.toLowerCase()] = u;
+        }
+      });
+      const filteredUsers = Object.values(uniqueUsers);
+
       const levels = ['L1', 'L2', 'L3', 'M1', 'M2'];
       let html = '';
 
       levels.forEach(lvl => {
-        const list = usersArray.filter(u => u.level === lvl);
+        const list = filteredUsers.filter(u => u.level === lvl);
         if (list.length > 0) {
           html += `<div class="level-group">`;
           html += `<div class="level-title">🎓 Niveau ${lvl} (${list.length})</div>`;
           list.forEach(st => {
             const majorText = st.major ? `<span class="major-badge">${st.major}</span>` : '';
-            html += `<div class="student-item">👤 <strong>${st.name}</strong> ${majorText}</div>`;
+            html += `<div class="student-item">👤 <strong>${st.name}</strong> (@${st.username}) ${majorText}</div>`;
           });
           html += `</div>`;
         }
