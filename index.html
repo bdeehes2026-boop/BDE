@@ -13,9 +13,9 @@
 
   <style>
     :root {
-      --primary: #800020; /* Bordeaux */
+      --primary: #800020;
       --primary-dark: #5c0017;
-      --secondary: #D4AF37; /* Or */
+      --secondary: #D4AF37;
       --secondary-light: #f3e5ab;
       --bg: #f8f9fa;
       --card-bg: #ffffff;
@@ -24,383 +24,100 @@
       --danger: #e74c3c;
     }
 
-    * {
-      box-sizing: border-box;
-      transition: all 0.2s ease;
-    }
-
-    body {
-      font-family: 'Poppins', sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: var(--bg);
-      color: var(--text);
-    }
+    * { box-sizing: border-box; transition: all 0.2s ease; }
+    body { font-family: 'Poppins', sans-serif; margin: 0; padding: 0; background-color: var(--bg); color: var(--text); }
 
     header {
       background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: white;
-      padding: 1rem 1.2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 4px 15px rgba(128, 0, 32, 0.3);
-      flex-wrap: wrap;
-      gap: 10px;
+      color: white; padding: 1rem 1.2rem; display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 4px 15px rgba(128, 0, 32, 0.3); flex-wrap: wrap; gap: 10px; position: relative;
     }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand img { height: 42px; border-radius: 6px; background: #fff; padding: 2px; }
+    .brand h1 { font-size: 1.2rem; margin: 0; font-weight: 700; letter-spacing: 0.5px; }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    #notifBtn, #profileBtn, #menuToggleBtn {
+      position: relative; background: rgba(255,255,255,0.2); border: none; color: white;
+      font-size: 0.95rem; padding: 6px 12px; border-radius: 20px; cursor: pointer; width: auto; margin: 0; box-shadow: none;
     }
-
-    .brand img {
-      height: 42px;
-      border-radius: 6px;
-      background: #fff;
-      padding: 2px;
-    }
-
-    .brand h1 {
-      font-size: 1.2rem;
-      margin: 0;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    #notifBtn, #profileBtn {
-      position: relative;
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      font-size: 0.95rem;
-      padding: 6px 12px;
-      border-radius: 20px;
-      cursor: pointer;
-      width: auto;
-      margin: 0;
-      box-shadow: none;
-    }
-
+    #menuToggleBtn { display: none; font-size: 1.2rem; }
     #notifBadge {
-      position: absolute;
-      top: -2px;
-      right: -2px;
-      background: var(--danger);
-      color: white;
-      font-size: 0.7rem;
-      font-weight: bold;
-      border-radius: 10px;
-      padding: 2px 6px;
-      display: none;
+      position: absolute; top: -2px; right: -2px; background: var(--danger); color: white;
+      font-size: 0.7rem; font-weight: bold; border-radius: 10px; padding: 2px 6px; display: none;
     }
-
-    #userStatus {
-      font-size: 0.8rem;
-      background: rgba(255, 255, 255, 0.15);
-      padding: 5px 12px;
-      border-radius: 20px;
-      backdrop-filter: blur(5px);
-    }
+    #userStatus { font-size: 0.8rem; background: rgba(255, 255, 255, 0.15); padding: 5px 12px; border-radius: 20px; backdrop-filter: blur(5px); }
 
     nav.tabs {
-      display: flex;
-      background-color: #fff;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-      overflow-x: auto;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      -webkit-overflow-scrolling: touch;
+      display: flex; background-color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      overflow-x: auto; position: sticky; top: 0; z-index: 100; -webkit-overflow-scrolling: touch;
     }
-
-    nav.tabs::-webkit-scrollbar {
-      display: none;
-    }
-
+    nav.tabs::-webkit-scrollbar { display: none; }
     nav.tabs button {
-      flex: 1;
-      min-width: 105px;
-      padding: 12px 8px;
-      background: none;
-      border: none;
-      color: var(--light-text);
-      font-weight: 600;
-      font-size: 0.85rem;
-      border-bottom: 3px solid transparent;
-      cursor: pointer;
-      border-radius: 0;
-      margin: 0;
-      white-space: nowrap;
+      flex: 1; min-width: 105px; padding: 12px 8px; background: none; border: none;
+      color: var(--light-text); font-weight: 600; font-size: 0.85rem; border-bottom: 3px solid transparent;
+      cursor: pointer; border-radius: 0; margin: 0; white-space: nowrap;
+    }
+    nav.tabs button.active { color: var(--primary); border-bottom: 3px solid var(--secondary); background-color: #fff6f8; }
+
+    @media (max-width: 768px) {
+      #menuToggleBtn { display: block; }
+      nav.tabs {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%; left: 0; right: 0;
+        background: white;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      }
+      nav.tabs.open { display: flex; }
+      nav.tabs button { text-align: left; padding: 14px 20px; border-bottom: 1px solid #eee; }
     }
 
-    nav.tabs button.active {
-      color: var(--primary);
-      border-bottom: 3px solid var(--secondary);
-      background-color: #fff6f8;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: 20px auto;
-      padding: 0 12px;
-    }
-
-    .card {
-      background: var(--card-bg);
-      padding: 20px;
-      margin-bottom: 20px;
-      border-radius: 12px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-      border-top: 5px solid var(--primary);
-    }
-
+    .container { max-width: 900px; margin: 20px auto; padding: 0 12px; }
+    .card { background: var(--card-bg); padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border-top: 5px solid var(--primary); }
     .hero-banner {
       background: linear-gradient(135deg, rgba(128,0,32,0.95), rgba(92,0,23,0.9)), url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1000&q=80');
-      background-size: cover;
-      background-position: center;
-      color: white;
-      padding: 25px 15px;
-      border-radius: 12px;
-      text-align: center;
-      margin-bottom: 20px;
-      box-shadow: 0 8px 25px rgba(128,0,32,0.25);
+      background-size: cover; background-position: center; color: white; padding: 25px 15px; border-radius: 12px; text-align: center; margin-bottom: 20px; box-shadow: 0 8px 25px rgba(128,0,32,0.25);
     }
+    .hero-banner h2 { color: var(--secondary) !important; font-size: 1.6rem; margin-bottom: 8px; }
 
-    .hero-banner h2 {
-      color: var(--secondary) !important;
-      font-size: 1.6rem;
-      margin-bottom: 8px;
-    }
+    h2, h3, h4 { color: var(--primary); margin-top: 0; font-weight: 600; }
+    input, select, textarea, button { width: 100%; padding: 11px 14px; margin: 6px 0; border: 1px solid #e1e8ed; border-radius: 8px; font-family: inherit; font-size: 0.9rem; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1); }
+    button { background-color: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(128, 0, 32, 0.2); }
+    button:hover { background-color: var(--primary-dark); transform: translateY(-1px); }
+    .btn-gold { background-color: var(--secondary); color: #2c3e50; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3); }
+    .btn-gold:hover { background-color: #b8962d; }
+    .btn-danger { background-color: var(--danger); color: white; padding: 6px 12px; font-size: 0.8rem; width: auto; margin-top: 6px; border-radius: 6px; box-shadow: none; }
+    .btn-danger:hover { background-color: #c0392b; }
+    .btn-warning { background-color: #e67e22; color: white; padding: 4px 8px; font-size: 0.75rem; width: auto; border-radius: 4px; box-shadow: none; margin-left: 8px; }
 
-    h2, h3, h4 {
-      color: var(--primary);
-      margin-top: 0;
-      font-weight: 600;
-    }
+    .hidden { display: none !important; }
+    .stat-box { display: inline-block; width: 48%; background: #fdfbf7; border: 1px solid var(--secondary-light); padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 10px; }
+    .stat-number { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
 
-    input, select, textarea, button {
-      width: 100%;
-      padding: 11px 14px;
-      margin: 6px 0;
-      border: 1px solid #e1e8ed;
-      border-radius: 8px;
-      font-family: inherit;
-      font-size: 0.9rem;
-    }
+    .feed-item { border-bottom: 1px solid #f0f0f0; padding: 15px 0; }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .feed-title { font-size: 1.05rem; font-weight: 600; color: var(--primary); }
+    .feed-date { font-size: 0.78rem; color: var(--light-text); background: #f0f0f0; padding: 3px 8px; border-radius: 12px; }
+    .feed-media { max-width: 100%; max-height: 380px; border-radius: 8px; margin-top: 10px; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .drive-link { display: inline-block; margin-top: 6px; padding: 8px 14px; background-color: var(--secondary); color: #2c3e50; text-decoration: none; border-radius: 6px; font-size: 0.85rem; font-weight: 600; }
 
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
-    }
+    .chat-box, .suggestion-box, .students-box, .manage-box { max-height: 360px; overflow-y: auto; border: 1px solid #edf2f7; padding: 12px; border-radius: 10px; background: #fcfcfc; margin-bottom: 15px; }
+    .chat-msg, .suggestion-item, .manage-item { margin-bottom: 10px; padding: 10px 12px; background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border-left: 3px solid var(--primary); }
+    .chat-msg strong { color: var(--primary); }
+    .chat-time { font-size: 0.75rem; color: var(--light-text); float: right; }
 
-    button {
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(128, 0, 32, 0.2);
-    }
+    .level-group { margin-bottom: 15px; background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border-top: 3px solid var(--secondary); }
+    .level-title { font-weight: 700; color: var(--primary); margin-bottom: 8px; font-size: 0.92rem; }
+    .student-item { padding: 6px 0; border-bottom: 1px dashed #eee; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+    .student-item:last-child { border-bottom: none; }
+    .major-badge { display: inline-block; background-color: #f0f4f8; color: var(--primary); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 6px; }
 
-    button:hover {
-      background-color: var(--primary-dark);
-      transform: translateY(-1px);
-    }
-
-    .btn-gold {
-      background-color: var(--secondary);
-      color: #2c3e50;
-      box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);
-    }
-
-    .btn-gold:hover {
-      background-color: #b8962d;
-    }
-
-    .btn-danger {
-      background-color: var(--danger);
-      color: white;
-      padding: 6px 12px;
-      font-size: 0.8rem;
-      width: auto;
-      margin-top: 6px;
-      border-radius: 6px;
-      box-shadow: none;
-    }
-
-    .btn-danger:hover {
-      background-color: #c0392b;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .stat-box {
-      display: inline-block;
-      width: 48%;
-      background: #fdfbf7;
-      border: 1px solid var(--secondary-light);
-      padding: 15px;
-      border-radius: 10px;
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
-    .stat-number {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--primary);
-    }
-
-    .feed-item {
-      border-bottom: 1px solid #f0f0f0;
-      padding: 15px 0;
-    }
-
-    .feed-item:last-child {
-      border-bottom: none;
-    }
-
-    .feed-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .feed-title {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--primary);
-    }
-
-    .feed-date {
-      font-size: 0.78rem;
-      color: var(--light-text);
-      background: #f0f0f0;
-      padding: 3px 8px;
-      border-radius: 12px;
-    }
-
-    .feed-media {
-      max-width: 100%;
-      max-height: 380px;
-      border-radius: 8px;
-      margin-top: 10px;
-      display: block;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    .drive-link {
-      display: inline-block;
-      margin-top: 6px;
-      padding: 8px 14px;
-      background-color: var(--secondary);
-      color: #2c3e50;
-      text-decoration: none;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-
-    .chat-box, .suggestion-box, .students-box, .manage-box {
-      max-height: 360px;
-      overflow-y: auto;
-      border: 1px solid #edf2f7;
-      padding: 12px;
-      border-radius: 10px;
-      background: #fcfcfc;
-      margin-bottom: 15px;
-    }
-
-    .chat-msg, .suggestion-item, .manage-item {
-      margin-bottom: 10px;
-      padding: 10px 12px;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-      border-left: 3px solid var(--primary);
-    }
-
-    .chat-msg strong {
-      color: var(--primary);
-    }
-
-    .chat-time {
-      font-size: 0.75rem;
-      color: var(--light-text);
-      float: right;
-    }
-
-    .level-group {
-      margin-bottom: 15px;
-      background: #fff;
-      padding: 12px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-      border-top: 3px solid var(--secondary);
-    }
-
-    .level-title {
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 8px;
-      font-size: 0.92rem;
-    }
-
-    .student-item {
-      padding: 6px 0;
-      border-bottom: 1px dashed #eee;
-      font-size: 0.85rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .student-item:last-child {
-      border-bottom: none;
-    }
-
-    .major-badge {
-      display: inline-block;
-      background-color: #f0f4f8;
-      color: var(--primary);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      margin-left: 6px;
-    }
-
-    .modal {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      max-width: 500px;
-      width: 92%;
-      max-height: 85vh;
-      overflow-y: auto;
-    }
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: white; padding: 20px; border-radius: 12px; max-width: 500px; width: 92%; max-height: 85vh; overflow-y: auto; }
   </style>
 </head>
 <body>
@@ -412,21 +129,21 @@
       <h1>BDE EHES</h1>
     </div>
     <div class="header-actions">
+      <button id="menuToggleBtn" onclick="toggleMobileMenu()">☰</button>
       <button id="notifBtn" onclick="openNotifs()">🔔 <span id="notifBadge">0</span></button>
       <button id="profileBtn" onclick="openProfileModal()">👤 Profil</button>
       <div id="userStatus">Visiteur</div>
     </div>
   </header>
 
-  <!-- NAVIGATION -->
-  <nav class="tabs">
+  <nav class="tabs" id="navTabs">
     <button class="tab-btn active" onclick="switchTab('homeTab')">📢 Accueil</button>
     <button class="tab-btn" onclick="switchTab('coursesTab')">📚 Cours & TDs</button>
     <button class="tab-btn" onclick="switchTab('biblioTab')">📖 Bibliothèque</button>
     <button class="tab-btn" onclick="switchTab('scheduleTab')">🗓️ Plannings</button>
     <button class="tab-btn" onclick="switchTab('chatTab')">💬 Forum</button>
     <button class="tab-btn" onclick="switchTab('suggestTab')">💡 Suggestions</button>
-    <button class="tab-btn" onclick="switchTab('adminTab')">⚙️ Admin</button>
+    <button class="tab-btn" id="adminTabBtn" onclick="switchTab('adminTab')">⚙️ Admin</button>
   </nav>
 
   <div class="container">
@@ -438,21 +155,31 @@
       <form id="authForm" onsubmit="handleAuthSubmit(event)">
         <div id="registerFields" class="hidden">
           <input type="text" id="authName" placeholder="Nom et Prénom">
-          <select id="authMajor">
-            <option value="">-- Sélectionnez votre Filière --</option>
-            <option value="Pétrole et Gaz">Pétrole et Gaz</option>
-            <option value="Génie Civil">Génie Civil</option>
-            <option value="Gestion des Entreprises">Gestion des Entreprises</option>
-            <option value="Transport & Logistique">Transport & Logistique</option>
+          
+          <label style="font-weight:600; font-size:0.85rem; color:var(--primary); margin-top:8px; display:block;">Type de Compte :</label>
+          <select id="authRole" onchange="toggleRoleFields()">
+            <option value="student">🎓 Étudiant</option>
+            <option value="admin">⚙️ Administrateur BDE</option>
           </select>
-          <select id="authLevel">
-            <option value="L1">Licence 1 (L1)</option>
-            <option value="L2">Licence 2 (L2)</option>
-            <option value="L3">Licence 3 (L3)</option>
-            <option value="M1">Master 1 (M1)</option>
-            <option value="M2">Master 2 (M2)</option>
-          </select>
-          <input type="text" id="authCode" placeholder="Code d'activation étudiant (ex: EHES2026)">
+
+          <div id="studentMajorLevelSection">
+            <select id="authMajor">
+              <option value="">-- Sélectionnez votre Filière --</option>
+              <option value="Pétrole et Gaz">Pétrole et Gaz</option>
+              <option value="Génie Civil">Génie Civil</option>
+              <option value="Gestion des Entreprises">Gestion des Entreprises</option>
+              <option value="Transport & Logistique">Transport & Logistique</option>
+            </select>
+            <select id="authLevel">
+              <option value="L1">Licence 1 (L1)</option>
+              <option value="L2">Licence 2 (L2)</option>
+              <option value="L3">Licence 3 (L3)</option>
+              <option value="M1">Master 1 (M1)</option>
+              <option value="M2">Master 2 (M2)</option>
+            </select>
+          </div>
+
+          <input type="text" id="authCode" placeholder="Code d'activation (Étudiant: EHES2026 / Admin: Mot de passe BDE)">
         </div>
 
         <input type="text" id="authUsername" placeholder="Nom d'utilisateur ou Identifiant" required>
@@ -560,28 +287,32 @@
       </form>
     </div>
 
-    <!-- ADMIN -->
+    <!-- ADMIN PANEL -->
     <div id="adminTab" class="tab-content card hidden">
       <h2>⚙️ Administration BDE</h2>
-      <div id="adminAuth">
-        <input type="password" id="adminPassInput" placeholder="Mot de passe Administrateur">
-        <button id="adminLoginBtn" class="btn-gold">Se connecter en Admin</button>
+      
+      <div id="adminNotice" class="hidden" style="color: var(--light-text); margin-bottom: 15px;">
+        Connectez-vous avec un compte Administrateur pour accéder à cette section.
       </div>
 
       <div id="adminPanel" class="hidden">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
           <h3 style="margin:0;">Panneau de Gestion</h3>
-          <button onclick="logoutAdmin()" class="btn-danger">Se déconnecter de l'Admin</button>
         </div>
 
         <div class="stat-box">
           <div class="stat-number" id="statInscrits">0</div>
-          Étudiants Inscrits
+          Utilisateurs Inscrits
         </div>
         <div class="stat-box">
           <div class="stat-number" id="statConnectes">0</div>
           Visites aujourd'hui
         </div>
+
+        <hr style="margin: 18px 0; border: none; border-top: 1px solid #eee;">
+
+        <h3>🚩 Messages du Forum Signalés</h3>
+        <div class="manage-box" id="adminReportsList"></div>
 
         <hr style="margin: 18px 0; border: none; border-top: 1px solid #eee;">
 
@@ -663,7 +394,7 @@
 
         <hr style="margin: 18px 0; border: none; border-top: 1px solid #eee;">
 
-        <h3>👥 Gestion des Étudiants Inscrits (Modération)</h3>
+        <h3>👥 Gestion des Utilisateurs (Modération)</h3>
         <div class="students-box" id="adminStudentsList"></div>
 
         <hr style="margin: 18px 0; border: none; border-top: 1px solid #eee;">
@@ -673,7 +404,7 @@
       </div>
     </div>
 
-    <!-- DECONNEXION ÉTUDIANT -->
+    <!-- DECONNEXION -->
     <div id="logoutSection" class="hidden" style="text-align:center; margin-top:15px;">
       <button id="logoutBtn" style="background-color: #666; width: auto; padding: 9px 22px; border-radius: 20px;">Se déconnecter du compte</button>
     </div>
@@ -695,29 +426,31 @@
   <div id="profileModal" class="modal hidden">
     <div class="modal-content">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3 style="margin:0;">👤 Mon Profil Étudiant</h3>
+        <h3 style="margin:0;">👤 Mon Profil</h3>
         <button onclick="closeProfileModal()" style="width:auto; padding:3px 8px; margin:0;">✖</button>
       </div>
       <form id="profileForm">
         <label style="font-size:0.85rem; font-weight:600;">Nom et Prénom :</label>
         <input type="text" id="profileName">
         
-        <label style="font-size:0.85rem; font-weight:600;">Filière :</label>
-        <select id="profileMajor">
-          <option value="Pétrole et Gaz">Pétrole et Gaz</option>
-          <option value="Génie Civil">Génie Civil</option>
-          <option value="Gestion des Entreprises">Gestion des Entreprises</option>
-          <option value="Transport & Logistique">Transport & Logistique</option>
-        </select>
+        <div id="profileStudentOnly">
+          <label style="font-size:0.85rem; font-weight:600;">Filière :</label>
+          <select id="profileMajor">
+            <option value="Pétrole et Gaz">Pétrole et Gaz</option>
+            <option value="Génie Civil">Génie Civil</option>
+            <option value="Gestion des Entreprises">Gestion des Entreprises</option>
+            <option value="Transport & Logistique">Transport & Logistique</option>
+          </select>
 
-        <label style="font-size:0.85rem; font-weight:600;">Niveau :</label>
-        <select id="profileLevel">
-          <option value="L1">Licence 1 (L1)</option>
-          <option value="L2">Licence 2 (L2)</option>
-          <option value="L3">Licence 3 (L3)</option>
-          <option value="M1">Master 1 (M1)</option>
-          <option value="M2">Master 2 (M2)</option>
-        </select>
+          <label style="font-size:0.85rem; font-weight:600;">Niveau :</label>
+          <select id="profileLevel">
+            <option value="L1">Licence 1 (L1)</option>
+            <option value="L2">Licence 2 (L2)</option>
+            <option value="L3">Licence 3 (L3)</option>
+            <option value="M1">Master 1 (M1)</option>
+            <option value="M2">Master 2 (M2)</option>
+          </select>
+        </div>
 
         <button type="submit" class="btn-gold" style="margin-top:12px;">Enregistrer les modifications</button>
       </form>
@@ -726,7 +459,7 @@
 
   <script>
     const STUDENT_SECRET_CODE = "EHES2026";
-    const ADMIN_HASH = "Bde2026"; 
+    const ADMIN_SECRET_CODE = "Bde2026"; 
 
     const firebaseConfig = {
       apiKey: "AIzaSyA86vCNL-tF9AVh8-ehKhcEnKjpXmGMQWI",
@@ -744,7 +477,6 @@
 
     let currentProfile = null;
     let isRegisterMode = false;
-    let isAdminLoggedIn = localStorage.getItem('ehes_admin_logged') === 'true';
 
     let usersList = {};
     let postsList = {};
@@ -754,6 +486,7 @@
     let messagesList = {};
     let suggestionsList = {};
     let loginsList = {};
+    let reportsList = {};
 
     const savedUser = localStorage.getItem('ehes_user');
     if (savedUser) {
@@ -802,10 +535,20 @@
       renderAdminSuggestions();
     });
 
+    db.ref('reports').on('value', (snapshot) => {
+      reportsList = snapshot.val() || {};
+      renderAdminReports();
+    });
+
     db.ref('logins').on('value', (snapshot) => {
       loginsList = snapshot.val() || {};
       loadAdminStats();
     });
+
+    function toggleMobileMenu() {
+      const nav = document.getElementById('navTabs');
+      nav.classList.toggle('open');
+    }
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -814,6 +557,21 @@
       document.getElementById(tabId).classList.remove('hidden');
       if (window.event && window.event.currentTarget) {
         window.event.currentTarget.classList.add('active');
+      }
+      document.getElementById('navTabs').classList.remove('open');
+    }
+
+    function toggleRoleFields() {
+      const role = document.getElementById('authRole').value;
+      const section = document.getElementById('studentMajorLevelSection');
+      const codeInput = document.getElementById('authCode');
+
+      if (role === 'admin') {
+        section.classList.add('hidden');
+        codeInput.placeholder = "Mot de passe d'activation Admin BDE";
+      } else {
+        section.classList.remove('hidden');
+        codeInput.placeholder = "Code d'activation étudiant (EHES2026)";
       }
     }
 
@@ -836,7 +594,7 @@
       e.preventDefault();
       isRegisterMode = !isRegisterMode;
       if (isRegisterMode) {
-        authTitle.innerText = "Créer un compte Étudiant";
+        authTitle.innerText = "Créer un compte";
         registerFields.classList.remove('hidden');
         authSubmitBtn.innerText = "S'inscrire";
         toggleAuthText.innerText = "Déjà inscrit ?";
@@ -862,17 +620,31 @@
 
       if (isRegisterMode) {
         const name = document.getElementById('authName').value.trim();
-        const level = document.getElementById('authLevel').value;
-        const major = document.getElementById('authMajor').value;
+        const role = document.getElementById('authRole').value;
         const code = document.getElementById('authCode').value.trim();
 
-        if (code !== STUDENT_SECRET_CODE) {
-          alert("Code d'activation étudiant incorrect ! Demandez-le au BDE.");
+        if (role === 'admin') {
+          if (code !== ADMIN_SECRET_CODE) {
+            alert("Code d'activation Administrateur incorrect !");
+            return;
+          }
+        } else {
+          if (code !== STUDENT_SECRET_CODE) {
+            alert("Code d'activation étudiant incorrect ! Demandez-le au BDE.");
+            return;
+          }
+        }
+
+        if (!name) {
+          alert("Veuillez saisir votre nom et prénom.");
           return;
         }
 
-        if (!name || !major) {
-          alert("Veuillez saisir votre nom et sélectionner votre filière.");
+        const level = (role === 'admin') ? "ADMIN" : document.getElementById('authLevel').value;
+        const major = (role === 'admin') ? "Administration BDE" : document.getElementById('authMajor').value;
+
+        if (role === 'student' && !major) {
+          alert("Veuillez sélectionner votre filière.");
           return;
         }
 
@@ -888,7 +660,7 @@
           }
 
           if (exists) {
-            alert("Cet identifiant ou cet e-mail est déjà utilisé par un autre étudiant !");
+            alert("Cet identifiant est déjà utilisé !");
             return;
           }
 
@@ -899,7 +671,8 @@
             username: username,
             password: password,
             level: level,
-            major: major
+            major: major,
+            role: role
           };
 
           db.ref('users/' + userId).set(newUser, (error) => {
@@ -910,7 +683,7 @@
               localStorage.setItem('ehes_user', JSON.stringify(newUser));
               registerLogin();
               checkUserSession();
-              alert("Compte créé avec succès ! Bienvenue " + name);
+              alert("Compte " + (role === 'admin' ? "Administrateur" : "Étudiant") + " créé avec succès ! Bienvenue " + name);
             }
           });
         });
@@ -956,20 +729,34 @@
     });
 
     function checkUserSession() {
+      const adminNotice = document.getElementById('adminNotice');
+      const adminPanel = document.getElementById('adminPanel');
+
       if (currentProfile) {
         authSection.classList.add('hidden');
         logoutSection.classList.remove('hidden');
         document.getElementById('profileBtn').classList.remove('hidden');
-        userStatus.innerText = `👤 ${currentProfile.name} (${currentProfile.level} - ${currentProfile.major})`;
+
+        const roleBadge = currentProfile.role === 'admin' ? '⚙️ Admin' : '👤 Étudiant';
+        userStatus.innerText = `${roleBadge} : ${currentProfile.name}`;
         welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
         userLevelDisplay.innerText = `${currentProfile.level} - ${currentProfile.major}`;
 
-        if (document.getElementById('filterMajor')) {
+        if (document.getElementById('filterMajor') && currentProfile.role !== 'admin') {
           document.getElementById('filterMajor').value = currentProfile.major;
         }
 
         document.getElementById('chatContainer').classList.remove('hidden');
         document.getElementById('chatGuestWarning').classList.add('hidden');
+
+        if (currentProfile.role === 'admin') {
+          adminNotice.classList.add('hidden');
+          adminPanel.classList.remove('hidden');
+        } else {
+          adminNotice.classList.remove('hidden');
+          adminPanel.classList.add('hidden');
+        }
+
       } else {
         authSection.classList.remove('hidden');
         logoutSection.classList.add('hidden');
@@ -980,18 +767,24 @@
 
         document.getElementById('chatContainer').classList.add('hidden');
         document.getElementById('chatGuestWarning').classList.remove('hidden');
+
+        adminNotice.classList.remove('hidden');
+        adminPanel.classList.add('hidden');
       }
+
       renderAnnouncements();
       renderCourses();
       renderBiblio();
       renderSchedules();
       renderChat();
-      checkAdminSession();
     }
 
     function formatDriveLink(url) {
-      if (url && url.includes('drive.google.com') && url.includes('/d/')) {
-        const fileId = url.split('/d/')[1].split('/')[0];
+      if (!url) return '#';
+      url = url.trim();
+      if (url.includes('drive.google.com') && url.includes('/d/')) {
+        const parts = url.split('/d/')[1].split('/');
+        const fileId = parts[0];
         return `https://drive.google.com/uc?export=download&id=${fileId}`;
       }
       return url;
@@ -1000,8 +793,15 @@
     function openProfileModal() {
       if (!currentProfile) return;
       document.getElementById('profileName').value = currentProfile.name;
-      document.getElementById('profileMajor').value = currentProfile.major;
-      document.getElementById('profileLevel').value = currentProfile.level;
+      const profileStudentOnly = document.getElementById('profileStudentOnly');
+
+      if (currentProfile.role === 'admin') {
+        profileStudentOnly.classList.add('hidden');
+      } else {
+        profileStudentOnly.classList.remove('hidden');
+        document.getElementById('profileMajor').value = currentProfile.major;
+        document.getElementById('profileLevel').value = currentProfile.level;
+      }
       document.getElementById('profileModal').classList.remove('hidden');
     }
 
@@ -1014,8 +814,10 @@
       if (!currentProfile) return;
 
       currentProfile.name = document.getElementById('profileName').value.trim();
-      currentProfile.major = document.getElementById('profileMajor').value;
-      currentProfile.level = document.getElementById('profileLevel').value;
+      if (currentProfile.role !== 'admin') {
+        currentProfile.major = document.getElementById('profileMajor').value;
+        currentProfile.level = document.getElementById('profileLevel').value;
+      }
 
       db.ref('users/' + currentProfile.id).update(currentProfile)
         .then(() => {
@@ -1036,7 +838,10 @@
       const selectedMajor = document.getElementById('filterMajor').value;
       const query = document.getElementById('searchCourseInput').value.toLowerCase().trim();
 
-      let userCourses = allCourses.filter(c => c.level === currentProfile.level);
+      let userCourses = allCourses;
+      if (currentProfile.role !== 'admin') {
+        userCourses = allCourses.filter(c => c.level === currentProfile.level);
+      }
 
       if (selectedMajor !== 'ALL') {
         userCourses = userCourses.filter(c => c.major === selectedMajor);
@@ -1121,7 +926,7 @@
       const allSchedules = Object.values(schedulesList);
 
       let mySchedules = allSchedules;
-      if (currentProfile) {
+      if (currentProfile && currentProfile.role !== 'admin') {
         mySchedules = allSchedules.filter(s => (s.major === currentProfile.major || s.major === 'TOUS') && (s.level === currentProfile.level || s.level === 'TOUS'));
       }
 
@@ -1240,18 +1045,34 @@
       
       entries.forEach(([key, m]) => {
         const majorInfo = m.major ? ` - ${m.major}` : '';
-        const deleteBtn = isAdminLoggedIn ? `<button class="btn-danger" style="margin-top:4px;" onclick="deleteChatMessage('${key}')">🗑️ Supprimer</button>` : '';
+        const isAdmin = (currentProfile && currentProfile.role === 'admin');
+        const deleteBtn = isAdmin ? `<button class="btn-danger" style="margin-top:4px;" onclick="deleteChatMessage('${key}')">🗑️ Supprimer</button>` : '';
+        const reportBtn = (currentProfile && !isAdmin) ? `<button class="btn-warning" onclick="reportChatMessage('${key}')">🚩 Signaler</button>` : '';
 
         chatBox.innerHTML += `
           <div class="chat-msg">
             <span class="chat-time">${m.time}</span>
             <strong>${m.sender} (${m.level}${majorInfo})</strong>
             <div style="margin-top: 3px;">${m.text}</div>
-            ${deleteBtn}
+            ${deleteBtn} ${reportBtn}
           </div>
         `;
       });
       chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function reportChatMessage(msgKey) {
+      if (confirm("Signaler ce message à l'administration du BDE ?")) {
+        const msg = messagesList[msgKey];
+        db.ref('reports').push({
+          msgKey: msgKey,
+          sender: msg.sender,
+          text: msg.text,
+          reportedBy: currentProfile ? currentProfile.name : "Anonyme",
+          timestamp: Date.now()
+        });
+        alert("Signalement transmis à l'Admin ! Merci.");
+      }
     }
 
     function deleteChatMessage(msgKey) {
@@ -1292,44 +1113,6 @@
       document.getElementById('suggestAnon').checked = false;
     });
 
-    const adminAuth = document.getElementById('adminAuth');
-    const adminPanel = document.getElementById('adminPanel');
-    const adminPassInput = document.getElementById('adminPassInput');
-    const adminLoginBtn = document.getElementById('adminLoginBtn');
-
-    adminLoginBtn.addEventListener('click', () => {
-      if (adminPassInput.value === ADMIN_HASH) {
-        isAdminLoggedIn = true;
-        localStorage.setItem('ehes_admin_logged', 'true');
-        checkAdminSession();
-      } else {
-        alert("Mot de passe Administrateur incorrect.");
-      }
-    });
-
-    function checkAdminSession() {
-      if (isAdminLoggedIn) {
-        adminAuth.classList.add('hidden');
-        adminPanel.classList.remove('hidden');
-        loadAdminStats();
-        renderAdminStudents();
-        renderAdminSuggestions();
-        renderAdminCoursesManage();
-        renderAdminPostsManage();
-        renderAdminBooksManage();
-        renderAdminSchedulesManage();
-      } else {
-        adminAuth.classList.remove('hidden');
-        adminPanel.classList.add('hidden');
-      }
-    }
-
-    function logoutAdmin() {
-      isAdminLoggedIn = false;
-      localStorage.removeItem('ehes_admin_logged');
-      checkAdminSession();
-    }
-
     function loadAdminStats() {
       const usersArray = Object.values(usersList);
       document.getElementById('statInscrits').innerText = usersArray.length;
@@ -1340,6 +1123,42 @@
       document.getElementById('statConnectes').innerText = todayLogins;
     }
 
+    function renderAdminReports() {
+      const container = document.getElementById('adminReportsList');
+      if (!container) return;
+
+      const entries = Object.entries(reportsList);
+      if (!entries.length) {
+        container.innerHTML = '<p style="color:var(--light-text);">Aucun signalement en attente.</p>';
+        return;
+      }
+
+      let html = '';
+      entries.forEach(([repKey, rep]) => {
+        html += `
+          <div class="manage-item">
+            <strong>Message de ${rep.sender} :</strong> "${rep.text}"<br>
+            <small style="color:var(--light-text);">Signalisé par : ${rep.reportedBy}</small><br>
+            <button class="btn-danger" onclick="deleteReportedMsg('${rep.msgKey}', '${repKey}')">🗑️ Supprimer le message du forum</button>
+            <button class="btn-gold" style="padding: 4px 8px; font-size:0.75rem; width:auto;" onclick="ignoreReport('${repKey}')">✅ Ignorer</button>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function deleteReportedMsg(msgKey, repKey) {
+      if (confirm("Supprimer ce message du forum ?")) {
+        db.ref('messages/' + msgKey).remove();
+        db.ref('reports/' + repKey).remove();
+      }
+    }
+
+    function ignoreReport(repKey) {
+      db.ref('reports/' + repKey).remove();
+    }
+
     function renderAdminStudents() {
       const container = document.getElementById('adminStudentsList');
       if (!container) return;
@@ -1347,18 +1166,19 @@
       const entries = Object.entries(usersList);
 
       if (!entries.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun étudiant inscrit pour le moment.</p>';
+        container.innerHTML = '<p style="color:var(--light-text);">Aucun utilisateur inscrit pour le moment.</p>';
         return;
       }
 
-      const levels = ['L1', 'L2', 'L3', 'M1', 'M2'];
+      const levels = ['ADMIN', 'L1', 'L2', 'L3', 'M1', 'M2'];
       let html = '';
 
       levels.forEach(lvl => {
         const list = entries.filter(([key, u]) => u.level === lvl);
         if (list.length > 0) {
+          const title = lvl === 'ADMIN' ? '⚙️ Administrateurs BDE' : `🎓 Niveau ${lvl}`;
           html += `<div class="level-group">`;
-          html += `<div class="level-title">🎓 Niveau ${lvl} (${list.length})</div>`;
+          html += `<div class="level-title">${title} (${list.length})</div>`;
           list.forEach(([key, st]) => {
             const majorText = st.major ? `<span class="major-badge">${st.major}</span>` : '';
             html += `
@@ -1372,11 +1192,11 @@
         }
       });
 
-      container.innerHTML = html || '<p style="color:var(--light-text);">Aucun étudiant enregistré.</p>';
+      container.innerHTML = html || '<p style="color:var(--light-text);">Aucun utilisateur enregistré.</p>';
     }
 
     function deleteStudent(userKey) {
-      if (confirm("Supprimer définitivement cet étudiant de la plateforme ?")) {
+      if (confirm("Supprimer définitivement cet utilisateur de la plateforme ?")) {
         db.ref('users/' + userKey).remove();
       }
     }
@@ -1525,11 +1345,42 @@
       }
 
       if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          savePost(title, content, e.target.result, file.type);
-        };
-        reader.readAsDataURL(file);
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const img = new Image();
+            img.onload = function() {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+              const maxDim = 800;
+
+              if (width > height && width > maxDim) {
+                height *= maxDim / width;
+                width = maxDim;
+              } else if (height > maxDim) {
+                width *= maxDim / height;
+                height = maxDim;
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressedData = canvas.toDataURL('image/jpeg', 0.7);
+
+              savePost(title, content, compressedData, 'image/jpeg');
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        } else {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            savePost(title, content, e.target.result, file.type);
+          };
+          reader.readAsDataURL(file);
+        }
       } else {
         savePost(title, content, null, null);
       }
@@ -1543,7 +1394,7 @@
         mediaType,
         timestamp: Date.now()
       });
-      alert("Annonce publiée en ligne !");
+      alert("Annonce optimisée et publiée en ligne !");
       document.getElementById('postTitle').value = '';
       document.getElementById('postContent').value = '';
       document.getElementById('postFileInput').value = '';
