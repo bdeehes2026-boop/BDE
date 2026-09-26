@@ -45,6 +45,8 @@
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 4px 15px rgba(128, 0, 32, 0.3);
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .brand {
@@ -70,17 +72,17 @@
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
-    #notifBtn {
+    #notifBtn, #profileBtn {
       position: relative;
       background: rgba(255,255,255,0.2);
       border: none;
       color: white;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       padding: 8px 12px;
-      border-radius: 50%;
+      border-radius: 20px;
       cursor: pointer;
       width: auto;
       margin: 0;
@@ -120,7 +122,7 @@
 
     nav.tabs button {
       flex: 1;
-      min-width: 100px;
+      min-width: 110px;
       padding: 14px 10px;
       background: none;
       border: none;
@@ -372,7 +374,7 @@
       margin-left: 6px;
     }
 
-    /* MODAL NOTIFICATIONS */
+    /* MODAL */
     .modal {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -385,11 +387,11 @@
 
     .modal-content {
       background: white;
-      padding: 20px;
+      padding: 25px;
       border-radius: 12px;
       max-width: 500px;
       width: 90%;
-      max-height: 80vh;
+      max-height: 85vh;
       overflow-y: auto;
     }
   </style>
@@ -406,6 +408,7 @@
       <button id="notifBtn" onclick="openNotifs()">
         🔔 <span id="notifBadge">0</span>
       </button>
+      <button id="profileBtn" onclick="openProfileModal()">👤 Profil</button>
       <div id="userStatus">Visiteur</div>
     </div>
   </header>
@@ -415,6 +418,7 @@
     <button class="tab-btn active" onclick="switchTab('homeTab')">📢 Accueil</button>
     <button class="tab-btn" onclick="switchTab('coursesTab')">📚 Cours & TDs</button>
     <button class="tab-btn" onclick="switchTab('biblioTab')">📖 Bibliothèque</button>
+    <button class="tab-btn" onclick="switchTab('scheduleTab')">🗓️ Plannings</button>
     <button class="tab-btn" onclick="switchTab('chatTab')">💬 Forum</button>
     <button class="tab-btn" onclick="switchTab('suggestTab')">💡 Suggestions</button>
     <button class="tab-btn" onclick="switchTab('adminTab')">⚙️ Admin</button>
@@ -478,14 +482,15 @@
       <h2>📚 Ressources Académiques (<span id="userLevelDisplay">Non connecté</span>)</h2>
       <p style="color: var(--light-text); font-size: 0.9rem;">Accédez aux supports de cours et travaux dirigés de votre niveau et de votre filière.</p>
       
-      <div style="margin: 15px 0; display: flex; gap: 10px;">
-        <select id="filterMajor" onchange="renderCourses()" style="margin:0;">
+      <div style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
+        <select id="filterMajor" onchange="renderCourses()" style="flex:1; margin:0;">
           <option value="ALL">Toutes les Filières</option>
           <option value="Pétrole et Gaz">Pétrole et Gaz</option>
           <option value="Génie Civil">Génie Civil</option>
           <option value="Gestion des Entreprises">Gestion des Entreprises</option>
           <option value="Transport & Logistique">Transport & Logistique</option>
         </select>
+        <input type="text" id="searchCourseInput" onkeyup="renderCourses()" placeholder="🔍 Rechercher un cours..." style="flex:1; margin:0;">
       </div>
 
       <hr style="border: none; border-top: 1px solid #eee; margin: 15px 0;">
@@ -499,8 +504,8 @@
       <h2>📖 Bibliothèque Virtuelle EHES</h2>
       <p style="color: var(--light-text); font-size: 0.9rem;">Consultez et téléchargez les livres, ouvrages et manuels de référence.</p>
 
-      <div style="margin: 15px 0;">
-        <select id="biblioFilterMajor" onchange="renderBiblio()" style="margin:0;">
+      <div style="margin: 15px 0; display: flex; gap: 10px; flex-wrap: wrap;">
+        <select id="biblioFilterMajor" onchange="renderBiblio()" style="flex:1; margin:0;">
           <option value="ALL">Toutes les Filières</option>
           <option value="Pétrole et Gaz">Pétrole et Gaz</option>
           <option value="Génie Civil">Génie Civil</option>
@@ -508,6 +513,7 @@
           <option value="Transport & Logistique">Transport & Logistique</option>
           <option value="Général">Culture Générale & Ouvrages Globaux</option>
         </select>
+        <input type="text" id="searchBiblioInput" onkeyup="renderBiblio()" placeholder="🔍 Rechercher un livre ou un auteur..." style="flex:1; margin:0;">
       </div>
 
       <hr style="border: none; border-top: 1px solid #eee; margin: 15px 0;">
@@ -516,7 +522,21 @@
       </div>
     </div>
 
-    <!-- ONGLET 4 : FORUM DISCUSSION -->
+    <!-- ONGLET 4 : PLANINGS & CALENDRIER -->
+    <div id="scheduleTab" class="tab-content card hidden">
+      <h2>🗓️ Emplois du Temps & Événements</h2>
+      <p style="color: var(--light-text); font-size: 0.9rem;">Retrouvez vos plannings de cours et les dates clés des examens et événements BDE.</p>
+      
+      <h3>📌 Mon Emploi du Temps</h3>
+      <div id="scheduleList"></div>
+
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+
+      <h3>📅 Calendrier de l'Année Académique</h3>
+      <div id="eventsList"></div>
+    </div>
+
+    <!-- ONGLET 5 : FORUM DISCUSSION -->
     <div id="chatTab" class="tab-content card hidden">
       <h2>💬 Forum de Discussion</h2>
       <div id="chatGuestWarning" class="hidden">
@@ -531,7 +551,7 @@
       </div>
     </div>
 
-    <!-- ONGLET 5 : BOÎTE À SUGGESTIONS -->
+    <!-- ONGLET 6 : BOÎTE À SUGGESTIONS -->
     <div id="suggestTab" class="tab-content card hidden">
       <h2>💡 Boîte à Suggestions</h2>
       <p style="color: var(--light-text); font-size: 0.9rem;">Une idée pour améliorer la vie étudiante ? Partagez-la directement avec le BDE !</p>
@@ -546,7 +566,7 @@
       </form>
     </div>
 
-    <!-- ONGLET 6 : ADMIN -->
+    <!-- ONGLET 7 : ADMIN -->
     <div id="adminTab" class="tab-content card hidden">
       <h2>⚙️ Administration BDE</h2>
       <div id="adminAuth">
@@ -606,6 +626,31 @@
 
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
 
+        <h3>🗓️ Publier un Emploi du Temps / Événement</h3>
+        <select id="schedMajor">
+          <option value="Pétrole et Gaz">Pétrole et Gaz</option>
+          <option value="Génie Civil">Génie Civil</option>
+          <option value="Gestion des Entreprises">Gestion des Entreprises</option>
+          <option value="Transport & Logistique">Transport & Logistique</option>
+          <option value="TOUS">Toutes les filières (Événement)</option>
+        </select>
+        <select id="schedLevel">
+          <option value="L1">Licence 1 (L1)</option>
+          <option value="L2">Licence 2 (L2)</option>
+          <option value="L3">Licence 3 (L3)</option>
+          <option value="M1">Master 1 (M1)</option>
+          <option value="M2">Master 2 (M2)</option>
+          <option value="TOUS">Tous les niveaux</option>
+        </select>
+        <input type="text" id="schedTitle" placeholder="Titre (ex: Emploi du temps Semestre 1)">
+        <input type="url" id="schedDriveUrl" placeholder="Lien de la photo ou du document PDF/Drive">
+        <button id="publishSchedBtn" class="btn-gold">Publier le Planning / Événement</button>
+
+        <h4 style="margin-top: 20px;">🗓️ Gérer / Supprimer les Plannings</h4>
+        <div class="manage-box" id="adminManageSchedList"></div>
+
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+
         <h3>📖 Ajouter un Livre dans la Bibliothèque</h3>
         <select id="bookMajor">
           <option value="Pétrole et Gaz">Pétrole et Gaz</option>
@@ -652,6 +697,39 @@
     </div>
   </div>
 
+  <!-- MODAL PROFIL -->
+  <div id="profileModal" class="modal hidden">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="margin:0;">👤 Mon Profil Étudiant</h3>
+        <button onclick="closeProfileModal()" style="width:auto; padding:4px 10px; margin:0;">✖</button>
+      </div>
+      <form id="profileForm">
+        <label style="font-size:0.85rem; font-weight:600;">Nom et Prénom :</label>
+        <input type="text" id="profileName">
+        
+        <label style="font-size:0.85rem; font-weight:600;">Filière :</label>
+        <select id="profileMajor">
+          <option value="Pétrole et Gaz">Pétrole et Gaz</option>
+          <option value="Génie Civil">Génie Civil</option>
+          <option value="Gestion des Entreprises">Gestion des Entreprises</option>
+          <option value="Transport & Logistique">Transport & Logistique</option>
+        </select>
+
+        <label style="font-size:0.85rem; font-weight:600;">Niveau :</label>
+        <select id="profileLevel">
+          <option value="L1">Licence 1 (L1)</option>
+          <option value="L2">Licence 2 (L2)</option>
+          <option value="L3">Licence 3 (L3)</option>
+          <option value="M1">Master 1 (M1)</option>
+          <option value="M2">Master 2 (M2)</option>
+        </select>
+
+        <button type="submit" class="btn-gold" style="margin-top:15px;">Enregistrer les modifications</button>
+      </form>
+    </div>
+  </div>
+
   <script>
     const STUDENT_SECRET_CODE = "EHES2026";
     const ADMIN_PASSWORD = "Bde2026";
@@ -678,11 +756,11 @@
     let postsList = {};
     let coursesList = {};
     let booksList = {};
+    let schedulesList = {};
     let messagesList = {};
     let suggestionsList = {};
     let loginsList = {};
 
-    // Charger session
     const savedUser = localStorage.getItem('ehes_user');
     if (savedUser) {
       currentProfile = JSON.parse(savedUser);
@@ -713,9 +791,16 @@
       renderAdminBooksManage();
     });
 
+    db.ref('schedules').on('value', (snapshot) => {
+      schedulesList = snapshot.val() || {};
+      renderSchedules();
+      renderAdminSchedulesManage();
+    });
+
     db.ref('messages').on('value', (snapshot) => {
       messagesList = snapshot.val() || {};
       renderChat();
+      cleanOldMessages();
     });
 
     db.ref('suggestions').on('value', (snapshot) => {
@@ -856,6 +941,7 @@
       if (currentProfile) {
         authSection.classList.add('hidden');
         logoutSection.classList.remove('hidden');
+        document.getElementById('profileBtn').classList.remove('hidden');
         userStatus.innerText = `👤 ${currentProfile.name} (${currentProfile.level} - ${currentProfile.major})`;
         welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
         userLevelDisplay.innerText = `${currentProfile.level} - ${currentProfile.major}`;
@@ -869,6 +955,7 @@
       } else {
         authSection.classList.remove('hidden');
         logoutSection.classList.add('hidden');
+        document.getElementById('profileBtn').classList.add('hidden');
         userStatus.innerText = "Visiteur";
         welcomeMsg.innerText = "Votre plateforme académique & vie étudiante";
         userLevelDisplay.innerText = "Non connecté";
@@ -879,19 +966,50 @@
       renderAnnouncements();
       renderCourses();
       renderBiblio();
+      renderSchedules();
       renderChat();
       checkAdminSession();
     }
 
     function formatDriveLink(url) {
-      if (url.includes('drive.google.com') && url.includes('/d/')) {
+      if (url && url.includes('drive.google.com') && url.includes('/d/')) {
         const fileId = url.split('/d/')[1].split('/')[0];
         return `https://drive.google.com/uc?export=download&id=${fileId}`;
       }
       return url;
     }
 
-    // COURS
+    // PROFIL MODAL
+    function openProfileModal() {
+      if (!currentProfile) return;
+      document.getElementById('profileName').value = currentProfile.name;
+      document.getElementById('profileMajor').value = currentProfile.major;
+      document.getElementById('profileLevel').value = currentProfile.level;
+      document.getElementById('profileModal').classList.remove('hidden');
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.add('hidden');
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!currentProfile) return;
+
+      currentProfile.name = document.getElementById('profileName').value.trim();
+      currentProfile.major = document.getElementById('profileMajor').value;
+      currentProfile.level = document.getElementById('profileLevel').value;
+
+      db.ref('users/' + currentProfile.id).update(currentProfile)
+        .then(() => {
+          localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
+          checkUserSession();
+          closeProfileModal();
+          alert("Profil mis à jour !");
+        });
+    });
+
+    // COURS AVEC RECHERCHE
     function renderCourses() {
       if (!currentProfile) {
         coursesContainer.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
@@ -900,6 +1018,7 @@
       
       const allCourses = Object.values(coursesList);
       const selectedMajor = document.getElementById('filterMajor').value;
+      const query = document.getElementById('searchCourseInput').value.toLowerCase().trim();
 
       let userCourses = allCourses.filter(c => c.level === currentProfile.level);
 
@@ -907,8 +1026,12 @@
         userCourses = userCourses.filter(c => c.major === selectedMajor);
       }
 
+      if (query) {
+        userCourses = userCourses.filter(c => c.title.toLowerCase().includes(query));
+      }
+
       if (!userCourses.length) {
-        coursesContainer.innerHTML = '<p style="color:var(--light-text);">Aucun cours mis en ligne pour ce niveau ou cette filière.</p>';
+        coursesContainer.innerHTML = '<p style="color:var(--light-text);">Aucun cours correspondant trouvé.</p>';
         return;
       }
 
@@ -938,21 +1061,26 @@
       coursesContainer.innerHTML = html;
     }
 
-    // BIBLIOTHÈQUE
+    // BIBLIOTHÈQUE AVEC RECHERCHE
     function renderBiblio() {
       const container = document.getElementById('biblioList');
       if (!container) return;
 
       const allBooks = Object.values(booksList);
       const selectedMajor = document.getElementById('biblioFilterMajor').value;
+      const query = document.getElementById('searchBiblioInput').value.toLowerCase().trim();
 
       let filteredBooks = allBooks;
       if (selectedMajor !== 'ALL') {
         filteredBooks = allBooks.filter(b => b.major === selectedMajor);
       }
 
+      if (query) {
+        filteredBooks = filteredBooks.filter(b => b.title.toLowerCase().includes(query) || b.author.toLowerCase().includes(query));
+      }
+
       if (!filteredBooks.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun ouvrage disponible dans cette catégorie.</p>';
+        container.innerHTML = '<p style="color:var(--light-text);">Aucun ouvrage correspondant trouvé.</p>';
         return;
       }
 
@@ -969,6 +1097,31 @@
       });
 
       container.innerHTML = html;
+    }
+
+    // PLANINGS & ÉVÉNEMENTS
+    function renderSchedules() {
+      const schedContainer = document.getElementById('scheduleList');
+      const eventsContainer = document.getElementById('eventsList');
+      if (!schedContainer || !eventsContainer) return;
+
+      const allSchedules = Object.values(schedulesList);
+
+      let mySchedules = allSchedules;
+      if (currentProfile) {
+        mySchedules = allSchedules.filter(s => (s.major === currentProfile.major || s.major === 'TOUS') && (s.level === currentProfile.level || s.level === 'TOUS'));
+      }
+
+      schedContainer.innerHTML = mySchedules.length ? '' : '<p style="color:var(--light-text);">Aucun emploi du temps disponible.</p>';
+      mySchedules.forEach(s => {
+        const downloadUrl = formatDriveLink(s.url);
+        schedContainer.innerHTML += `
+          <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px;">
+            <strong>🗓️ ${s.title}</strong> (${s.major} - ${s.level})<br>
+            <a href="${downloadUrl}" class="drive-link" target="_blank">📄 Consulter le planning</a>
+          </div>
+        `;
+      });
     }
 
     // ANNONCES
@@ -1044,7 +1197,7 @@
       document.getElementById('notifModal').classList.add('hidden');
     }
 
-    // CHAT
+    // FORUM + PURGE AUTOMATIQUE
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
     const chatBox = document.getElementById('chatBox');
@@ -1085,6 +1238,16 @@
         `;
       });
       chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function cleanOldMessages() {
+      const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      for (let key in messagesList) {
+        if (now - messagesList[key].timestamp > THIRTY_DAYS_MS) {
+          db.ref('messages/' + key).remove();
+        }
+      }
     }
 
     // SUGGESTIONS
@@ -1136,6 +1299,7 @@
         renderAdminCoursesManage();
         renderAdminPostsManage();
         renderAdminBooksManage();
+        renderAdminSchedulesManage();
       } else {
         adminAuth.classList.remove('hidden');
         adminPanel.classList.add('hidden');
@@ -1262,7 +1426,7 @@
       }
     }
 
-    // GESTION SUPPRESSION LIVRES (BIBLIOTHÈQUE)
+    // GESTION SUPPRESSION LIVRES
     function renderAdminBooksManage() {
       const container = document.getElementById('adminManageBooksList');
       if (!container) return;
@@ -1289,6 +1453,36 @@
     function deleteBook(bookKey) {
       if (confirm("Supprimer ce livre ?")) {
         db.ref('books/' + bookKey).remove();
+      }
+    }
+
+    // GESTION SUPPRESSION PLANINGS
+    function renderAdminSchedulesManage() {
+      const container = document.getElementById('adminManageSchedList');
+      if (!container) return;
+
+      const entries = Object.entries(schedulesList);
+      if (!entries.length) {
+        container.innerHTML = '<p style="color:var(--light-text);">Aucun planning à gérer.</p>';
+        return;
+      }
+
+      let html = '';
+      entries.forEach(([key, sched]) => {
+        html += `
+          <div class="manage-item">
+            <strong>${sched.title}</strong> — <small>${sched.major} (${sched.level})</small><br>
+            <button class="btn-danger" onclick="deleteSched('${key}')">🗑️ Supprimer ce planning</button>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function deleteSched(schedKey) {
+      if (confirm("Supprimer ce planning ?")) {
+        db.ref('schedules/' + schedKey).remove();
       }
     }
 
@@ -1347,7 +1541,7 @@
       document.getElementById('courseDriveUrl').value = '';
     });
 
-    // PUBLIER LIVRE (BIBLIOTHÈQUE)
+    // PUBLIER LIVRE
     document.getElementById('publishBookBtn').addEventListener('click', () => {
       const major = document.getElementById('bookMajor').value;
       const title = document.getElementById('bookTitle').value.trim();
@@ -1364,6 +1558,24 @@
       document.getElementById('bookTitle').value = '';
       document.getElementById('bookAuthor').value = '';
       document.getElementById('bookDriveUrl').value = '';
+    });
+
+    // PUBLIER PLANING
+    document.getElementById('publishSchedBtn').addEventListener('click', () => {
+      const major = document.getElementById('schedMajor').value;
+      const level = document.getElementById('schedLevel').value;
+      const title = document.getElementById('schedTitle').value.trim();
+      const url = document.getElementById('schedDriveUrl').value.trim();
+
+      if (!title || !url) {
+        alert("Veuillez remplir tous les champs.");
+        return;
+      }
+
+      db.ref('schedules').push({ major, level, title, url });
+      alert(`Planning / Événement publié !`);
+      document.getElementById('schedTitle').value = '';
+      document.getElementById('schedDriveUrl').value = '';
     });
 
     checkUserSession();
