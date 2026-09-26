@@ -122,8 +122,16 @@
     .modal-content { background: white; padding: 20px; border-radius: 12px; max-width: 500px; width: 92%; max-height: 85vh; overflow-y: auto; }
   </style>
 </head>
-<body>
+  <!-- Fichier de configuration PWA -->
+<link rel="manifest" href="./manifest.json">
 
+<!-- Configuration pour que l'application s'affiche bien sur iPhone/Android -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EHES BDE">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#1e3a8a">
+<body>
   <header>
     <div class="brand">
       <img src="logo_ehes.png" alt="EHES" onerror="this.style.display='none'">
