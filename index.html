@@ -94,6 +94,8 @@
     .btn-danger { background-color: var(--danger); color: white; padding: 6px 12px; font-size: 0.8rem; width: auto; margin-top: 6px; border-radius: 6px; box-shadow: none; }
     .btn-danger:hover { background-color: #c0392b; }
     .btn-warning { background-color: #e67e22; color: white; padding: 4px 8px; font-size: 0.75rem; width: auto; border-radius: 4px; box-shadow: none; margin-left: 8px; }
+    .btn-promote { background-color: #27ae60; color: white; padding: 4px 8px; font-size: 0.75rem; width: auto; border-radius: 4px; box-shadow: none; margin-left: 5px; }
+    .btn-promote:hover { background-color: #219150; }
 
     .hidden { display: none !important; }
     .stat-box { display: inline-block; width: 48%; background: #fdfbf7; border: 1px solid var(--secondary-light); padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 10px; }
@@ -114,7 +116,7 @@
 
     .level-group { margin-bottom: 15px; background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); border-top: 3px solid var(--secondary); }
     .level-title { font-weight: 700; color: var(--primary); margin-bottom: 8px; font-size: 0.92rem; }
-    .student-item { padding: 6px 0; border-bottom: 1px dashed #eee; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+    .student-item { padding: 6px 0; border-bottom: 1px dashed #eee; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px; }
     .student-item:last-child { border-bottom: none; }
     .major-badge { display: inline-block; background-color: #f0f4f8; color: var(--primary); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-left: 6px; }
 
@@ -186,6 +188,7 @@
               <option value="L3">Licence 3 (L3)</option>
               <option value="M1">Master 1 (M1)</option>
               <option value="M2">Master 2 (M2)</option>
+              <option value="Alumni">Alumni</option>
             </select>
           </div>
 
@@ -321,6 +324,13 @@
 
         <hr style="margin: 18px 0; border: none; border-top: 1px solid #eee;">
 
+        <h3>📲 Envoyer une Notification Globale</h3>
+        <input type="text" id="adminNotifTitle" placeholder="Titre de la notification">
+        <textarea id="adminNotifBody" rows="2" placeholder="Message de la notification..."></textarea>
+        <button id="sendGlobalNotifBtn" class="btn-gold">Envoyer la notification à tous les membres</button>
+
+        <hr style="margin: 18px 0; border: none; border-top: 1px solid #eee;">
+
         <h3>🚩 Messages du Forum Signalés</h3>
         <div class="manage-box" id="adminReportsList"></div>
 
@@ -378,7 +388,9 @@
           <option value="TOUS">Tous les niveaux</option>
         </select>
         <input type="text" id="schedTitle" placeholder="Titre (ex: Planning Semestre 1)">
-        <input type="url" id="schedDriveUrl" placeholder="Lien du document ou de l'image">
+        <input type="url" id="schedDriveUrl" placeholder="Lien du document ou de l'image (optionnel)">
+        <label style="font-size: 0.85rem; font-weight: 600;">Joindre une photo au planning :</label>
+        <input type="file" id="schedFileInput" accept="image/*">
         <button id="publishSchedBtn" class="btn-gold">Publier le Planning</button>
 
         <h4 style="margin-top: 15px;">🗓️ Gérer / Supprimer les Plannings</h4>
@@ -404,7 +416,7 @@
 
         <hr style="margin: 18px 0; border: none; border-top: 1px solid #eee;">
 
-        <h3>👥 Gestion des Utilisateurs (Modération)</h3>
+        <h3>👥 Gestion des Utilisateurs (Passage Supérieur & Modération)</h3>
         <div class="students-box" id="adminStudentsList"></div>
 
         <hr style="margin: 18px 0; border: none; border-top: 1px solid #eee;">
@@ -459,6 +471,7 @@
             <option value="L3">Licence 3 (L3)</option>
             <option value="M1">Master 1 (M1)</option>
             <option value="M2">Master 2 (M2)</option>
+            <option value="Alumni">Alumni</option>
           </select>
         </div>
 
@@ -510,6 +523,7 @@
 
     let currentProfile = null;
     let isRegisterMode = false;
+    let unreadNotifCount = 0;
 
     let usersList = {};
     let postsList = {};
@@ -520,6 +534,7 @@
     let suggestionsList = {};
     let loginsList = {};
     let reportsList = {};
+    let notificationsList = {};
 
     const savedUser = localStorage.getItem('ehes_user');
     if (savedUser) {
@@ -536,6 +551,11 @@
       postsList = snapshot.val() || {};
       renderAnnouncements();
       renderAdminPostsManage();
+      updateNotifBadge();
+    });
+
+    db.ref('notifications').on('value', (snapshot) => {
+      notificationsList = snapshot.val() || {};
       updateNotifBadge();
     });
 
@@ -966,10 +986,14 @@
       schedContainer.innerHTML = mySchedules.length ? '' : '<p style="color:var(--light-text);">Aucun emploi du temps disponible.</p>';
       mySchedules.forEach(s => {
         const downloadUrl = formatDriveLink(s.url);
+        let linkHtml = s.url ? `<a href="${downloadUrl}" class="drive-link" target="_blank">📄 Consulter le document</a>` : '';
+        let mediaHtml = s.mediaData ? `<img src="${s.mediaData}" class="feed-media">` : '';
+
         schedContainer.innerHTML += `
           <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px;">
             <strong>🗓️ ${s.title}</strong> (${s.major} - ${s.level})<br>
-            <a href="${downloadUrl}" class="drive-link" target="_blank">📄 Consulter le planning</a>
+            ${mediaHtml}
+            ${linkHtml}
           </div>
         `;
       });
@@ -986,9 +1010,9 @@
         let mediaHtml = '';
 
         if (p.mediaData) {
-          if (p.mediaType.startsWith('image/')) {
+          if (p.mediaType && p.mediaType.startsWith('image/')) {
             mediaHtml = `<img src="${p.mediaData}" class="feed-media">`;
-          } else if (p.mediaType.startsWith('video/')) {
+          } else if (p.mediaType && p.mediaType.startsWith('video/')) {
             mediaHtml = `<video src="${p.mediaData}" controls class="feed-media"></video>`;
           }
         }
@@ -1009,9 +1033,15 @@
     function updateNotifBadge() {
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
       const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
+      const recentPushNotifs = Object.values(notificationsList).filter(n => (Date.now() - n.timestamp) < ONE_WEEK_MS);
+      const totalNotifs = recentPosts.length + recentPushNotifs.length;
+      
       const badge = document.getElementById('notifBadge');
-      if (recentPosts.length > 0) {
-        badge.innerText = recentPosts.length;
+      if (unreadNotifCount === 0 && totalNotifs > 0) {
+        unreadNotifCount = totalNotifs;
+      }
+      if (unreadNotifCount > 0) {
+        badge.innerText = unreadNotifCount;
         badge.style.display = 'block';
       } else {
         badge.style.display = 'none';
@@ -1019,21 +1049,32 @@
     }
 
     function openNotifs() {
+      // Le bouton notification revient à zéro dès qu'on y appuie
+      unreadNotifCount = 0;
+      const badge = document.getElementById('notifBadge');
+      badge.style.display = 'none';
+      badge.innerText = '0';
+
       const modal = document.getElementById('notifModal');
       const list = document.getElementById('notifList');
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-      const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
-      recentPosts.sort((a,b) => b.timestamp - a.timestamp);
+      
+      const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS).map(p => ({ title: p.title, content: p.content, timestamp: p.timestamp, type: 'post' }));
+      const recentPushNotifs = Object.values(notificationsList).filter(n => (Date.now() - n.timestamp) < ONE_WEEK_MS).map(n => ({ title: n.title, content: n.body, timestamp: n.timestamp, type: 'notif' }));
+      
+      const allItems = [...recentPosts, ...recentPushNotifs];
+      allItems.sort((a,b) => b.timestamp - a.timestamp);
 
-      if (!recentPosts.length) {
+      if (!allItems.length) {
         list.innerHTML = '<p style="color:var(--light-text);">Aucune notification récente.</p>';
       } else {
         let html = '';
-        recentPosts.forEach(p => {
+        allItems.forEach(p => {
+          const prefix = p.type === 'notif' ? '📲' : '📢';
           html += `
             <div style="padding:8px 0; border-bottom:1px solid #eee;">
-              <strong>📢 ${p.title}</strong>
-              <p style="margin:3px 0; font-size:0.85rem; color:#555;">${p.content.substring(0, 80)}...</p>
+              <strong>${prefix} ${p.title}</strong>
+              <p style="margin:3px 0; font-size:0.85rem; color:#555;">${p.content}</p>
             </div>
           `;
         });
@@ -1203,21 +1244,25 @@
         return;
       }
 
-      const levels = ['ADMIN', 'L1', 'L2', 'L3', 'M1', 'M2'];
+      const levels = ['ADMIN', 'L1', 'L2', 'L3', 'M1', 'M2', 'Alumni'];
       let html = '';
 
       levels.forEach(lvl => {
         const list = entries.filter(([key, u]) => u.level === lvl);
         if (list.length > 0) {
-          const title = lvl === 'ADMIN' ? '⚙️ Administrateurs BDE' : `🎓 Niveau ${lvl}`;
+          const title = lvl === 'ADMIN' ? '⚙️ Administrateurs BDE' : (lvl === 'Alumni' ? '🎓 Alumni (Anciens Élèves)' : `🎓 Niveau ${lvl}`);
           html += `<div class="level-group">`;
           html += `<div class="level-title">${title} (${list.length})</div>`;
           list.forEach(([key, st]) => {
             const majorText = st.major ? `<span class="major-badge">${st.major}</span>` : '';
+            const promoteBtn = st.role !== 'admin' && st.level !== 'Alumni' ? `<button class="btn-promote" onclick="promoteStudentLevel('${key}')">🎓 Passage Supérieur</button>` : '';
             html += `
               <div class="student-item">
                 <span>👤 <strong>${st.name}</strong> (@${st.username}) ${majorText}</span>
-                <button class="btn-danger" style="margin:0;" onclick="deleteStudent('${key}')">🗑️ Supprimer</button>
+                <div>
+                  ${promoteBtn}
+                  <button class="btn-danger" style="margin:0;" onclick="deleteStudent('${key}')">🗑️ Supprimer</button>
+                </div>
               </div>
             `;
           });
@@ -1226,6 +1271,50 @@
       });
 
       container.innerHTML = html || '<p style="color:var(--light-text);">Aucun utilisateur enregistré.</p>';
+    }
+
+    function promoteStudentLevel(userKey) {
+      const student = usersList[userKey];
+      if (!student) return;
+
+      let nextLevel = student.level;
+      const major = student.major;
+
+      // Règles de passage en classe supérieure
+      if (major === "Gestion des Entreprises" || major === "Transport & Logistique") {
+        if (student.level === "L1") nextLevel = "L2";
+        else if (student.level === "L2") nextLevel = "L3";
+        else if (student.level === "L3") nextLevel = "Alumni";
+      } else if (major === "Pétrole et Gaz") {
+        if (student.level === "L1") nextLevel = "L2";
+        else if (student.level === "L2") nextLevel = "L3";
+        else if (student.level === "L3") nextLevel = "M1";
+        else if (student.level === "M1") nextLevel = "Alumni";
+      } else { // Génie Civil et autres filières standards
+        if (student.level === "L1") nextLevel = "L2";
+        else if (student.level === "L2") nextLevel = "L3";
+        else if (student.level === "L3") nextLevel = "M1";
+        else if (student.level === "M1") nextLevel = "M2";
+        else if (student.level === "M2") nextLevel = "Alumni";
+      }
+
+      if (nextLevel === student.level) {
+        alert(`${student.name} est déjà au niveau maximum (${student.level}).`);
+        return;
+      }
+
+      if (confirm(`Faire passer ${student.name} (${major}) de ${student.level} à ${nextLevel} ?`)) {
+        db.ref('users/' + userKey).update({ level: nextLevel }, (error) => {
+          if (!error) {
+            alert(`Niveau mis à jour avec succès : ${nextLevel}`);
+            if (currentProfile && currentProfile.id === userKey) {
+              currentProfile.level = nextLevel;
+              localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
+              checkUserSession();
+            }
+          }
+        });
+      }
     }
 
     function deleteStudent(userKey) {
@@ -1366,6 +1455,27 @@
       }
     }
 
+    // Publication de notification globale par l'Admin
+    document.getElementById('sendGlobalNotifBtn').addEventListener('click', () => {
+      const title = document.getElementById('adminNotifTitle').value.trim();
+      const body = document.getElementById('adminNotifBody').value.trim();
+
+      if (!title || !body) {
+        alert("Veuillez remplir le titre et le contenu de la notification.");
+        return;
+      }
+
+      db.ref('notifications').push({
+        title,
+        body,
+        timestamp: Date.now()
+      });
+
+      alert("Notification envoyée à tous les membres !");
+      document.getElementById('adminNotifTitle').value = '';
+      document.getElementById('adminNotifBody').value = '';
+    });
+
     document.getElementById('publishPostBtn').addEventListener('click', () => {
       const title = document.getElementById('postTitle').value.trim();
       const content = document.getElementById('postContent').value.trim();
@@ -1379,34 +1489,9 @@
 
       if (file) {
         if (file.type.startsWith('image/')) {
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            const img = new Image();
-            img.onload = function() {
-              const canvas = document.createElement('canvas');
-              let width = img.width;
-              let height = img.height;
-              const maxDim = 800;
-
-              if (width > height && width > maxDim) {
-                height *= maxDim / width;
-                width = maxDim;
-              } else if (height > maxDim) {
-                width *= maxDim / height;
-                height = maxDim;
-              }
-
-              canvas.width = width;
-              canvas.height = height;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, width, height);
-              const compressedData = canvas.toDataURL('image/jpeg', 0.7);
-
-              savePost(title, content, compressedData, 'image/jpeg');
-            };
-            img.src = e.target.result;
-          };
-          reader.readAsDataURL(file);
+          compressAndSaveImage(file, (compressedData) => {
+            savePost(title, content, compressedData, 'image/jpeg');
+          });
         } else {
           const reader = new FileReader();
           reader.onload = function (e) {
@@ -1418,6 +1503,36 @@
         savePost(title, content, null, null);
       }
     });
+
+    function compressAndSaveImage(file, callback) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 800;
+
+          if (width > height && width > maxDim) {
+            height *= maxDim / width;
+            width = maxDim;
+          } else if (height > maxDim) {
+            width *= maxDim / height;
+            height = maxDim;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedData = canvas.toDataURL('image/jpeg', 0.7);
+          callback(compressedData);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
 
     function savePost(title, content, mediaData, mediaType) {
       db.ref('posts').push({
@@ -1473,17 +1588,34 @@
       const level = document.getElementById('schedLevel').value;
       const title = document.getElementById('schedTitle').value.trim();
       const url = document.getElementById('schedDriveUrl').value.trim();
+      const fileInput = document.getElementById('schedFileInput');
+      const file = fileInput ? fileInput.files[0] : null;
 
-      if (!title || !url) {
-        alert("Veuillez remplir tous les champs.");
+      if (!title) {
+        alert("Veuillez préciser au moins le titre du planning.");
         return;
       }
 
-      db.ref('schedules').push({ major, level, title, url });
-      alert(`Planning / Événement publié !`);
+      if (file) {
+        compressAndSaveImage(file, (compressedData) => {
+          db.ref('schedules').push({ major, level, title, url, mediaData: compressedData });
+          alert(`Planning / Événement publié avec photo !`);
+          resetSchedForm();
+        });
+      } else {
+        db.ref('schedules').push({ major, level, title, url });
+        alert(`Planning / Événement publié !`);
+        resetSchedForm();
+      }
+    });
+
+    function resetSchedForm() {
       document.getElementById('schedTitle').value = '';
       document.getElementById('schedDriveUrl').value = '';
-    });
+      if (document.getElementById('schedFileInput')) {
+        document.getElementById('schedFileInput').value = '';
+      }
+    }
 
     // Sauvegarde et rechargement dynamique des données locales
     function saveLocalData(key, data) {
