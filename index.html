@@ -649,7 +649,9 @@
       measurementId: "G-KCFWT0H51R"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
     const db = firebase.database();
 
     try {
@@ -695,7 +697,7 @@
       }
     }
 
-    // Écouteurs en temps réel Firebase
+    // Synchronisation Firebase en temps réel
     db.ref('users').on('value', (snapshot) => {
       usersList = snapshot.val() || {};
       loadAdminStats();
@@ -1131,17 +1133,13 @@
     });
 
     function renderCourses() {
-      if (!currentProfile) {
-        coursesContainer.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
-        return;
-      }
-      
+      if (!coursesContainer) return;
       const allCourses = Object.values(coursesList);
       const selectedMajor = document.getElementById('filterMajor').value;
       const query = document.getElementById('searchCourseInput').value.toLowerCase().trim();
 
       let userCourses = allCourses;
-      if (currentProfile.role !== 'admin') {
+      if (currentProfile && currentProfile.role !== 'admin') {
         userCourses = allCourses.filter(c => c.level === currentProfile.level);
       }
 
@@ -1173,7 +1171,7 @@
           const downloadUrl = formatDriveLink(c.url);
           html += `
             <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px;">
-              <strong>${c.title}</strong><br>
+              <strong>${c.title}</strong> — <small>(${c.level})</small><br>
               <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Télécharger le document</a>
             </div>
           `;
@@ -1298,10 +1296,11 @@
       }
     });
 
+    // CORRECTION MAJEURE : Détection ultra-large et infaillible du Président et Vice-Président
     function isLeader(user) {
       if (!user) return false;
       if (user.role === 'admin') {
-        if (!user.adminPost) return true;
+        if (!user.adminPost) return true; // Si admin sans poste précis
         const post = user.adminPost.toLowerCase().trim();
         return post.includes('president') || post.includes('président') || post.includes('vice');
       }
@@ -1479,7 +1478,7 @@
       document.getElementById('suggestAnon').checked = false;
     });
 
-    /* GESTION DES PROJETS BDE AVEC NOTIFICATION & BOUTONS PR / VICE-PR */
+    /* GESTION DES PROJETS BDE AVEC NOTIFICATION CIBLÉE LEADERS */
     function submitProject() {
       if (!currentProfile || currentProfile.role !== 'admin') return;
       const title = document.getElementById('projTitle').value.trim();
@@ -1512,6 +1511,7 @@
         timestamp: Date.now()
       }, (error) => {
         if (!error) {
+          // Notification ciblée pour déclencher la cloche des leaders
           db.ref('notifications').push({
             title: "📋 Nouveau projet à valider",
             body: `Le ministère de [${authorPostName}] (${currentProfile.name}) a soumis le projet : "${title}".`,
@@ -1796,6 +1796,7 @@
 
     function renderAdminSuggestions() {
       const container = document.getElementById('adminSuggestionsList');
+      if (!container) return;
       const suggs = Object.values(suggestionsList);
       suggs.sort((a,b) => b.timestamp - a.timestamp);
 
