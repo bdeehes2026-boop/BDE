@@ -631,20 +631,6 @@
   </div>
 
   <script>
-    // Fonction pour retrouver la clé Firebase d'un objet si elle n'est pas passée directement
-function getObjectKey(obj, targetVal) {
-  return Object.keys(obj).find(key => obj[key] === targetVal);
-}
-
-// Fonction pour incrémenter le compteur dans Firebase
-function incrementDownload(category, itemKey) {
-  if (!itemKey) return;
-  const ref = db.ref(`${category}/${itemKey}/downloads`);
-  ref.transaction(currentCount => {
-    return (currentCount || 0) + 1;
-  });
-}
-
     const STUDENT_SECRET_CODE = "EHES2026";
     const ADMIN_SECRET_CODE = "Bde2026"; 
 
@@ -1132,36 +1118,95 @@ function incrementDownload(category, itemKey) {
     });
 
     function renderCourses() {
-  grouped[major].forEach(c => {
-  const downloadUrl = formatDriveLink(c.url);
-  const downloadCount = c.downloads || 0; // Récupère le nombre de téléchargements
-  html += `
-    <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px;">
-      <strong>${c.title}</strong><br>
-      <a href="${downloadUrl}" class="drive-link" target="_blank" download onclick="incrementDownload('courses', '${c.key || getObjectKey(coursesList, c)}')">
-        💾 Télécharger le document (${downloadCount})
-      </a>
-    </div>
-  `;
-});
+      if (!currentProfile) {
+        coursesContainer.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
+        return;
+      }
+      
+      const allCourses = Object.values(coursesList);
+      const selectedMajor = document.getElementById('filterMajor').value;
+      const query = document.getElementById('searchCourseInput').value.toLowerCase().trim();
 
+      let userCourses = allCourses;
+      if (currentProfile.role !== 'admin') {
+        userCourses = allCourses.filter(c => c.level === currentProfile.level);
+      }
+
+      if (selectedMajor !== 'ALL') {
+        userCourses = userCourses.filter(c => c.major === selectedMajor);
+      }
+
+      if (query) {
+        userCourses = userCourses.filter(c => c.title.toLowerCase().includes(query));
+      }
+
+      if (!userCourses.length) {
+        coursesContainer.innerHTML = '<p style="color:var(--light-text);">Aucun cours correspondant trouvé.</p>';
+        return;
+      }
+
+      const grouped = {};
+      userCourses.forEach(c => {
+        const majorKey = c.major || "Général";
+        if (!grouped[majorKey]) grouped[majorKey] = [];
+        grouped[majorKey].push(c);
+      });
+
+      let html = '';
+      for (let major in grouped) {
+        html += `<div class="level-group">`;
+        html += `<div class="level-title">📂 ${major}</div>`;
+        grouped[major].forEach(c => {
+          const downloadUrl = formatDriveLink(c.url);
+          html += `
+            <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px;">
+              <strong>${c.title}</strong><br>
+              <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Télécharger le document</a>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+
+      coursesContainer.innerHTML = html;
+    }
 
     function renderBiblio() {
-      filteredBooks.forEach(b => {
-  const downloadUrl = formatDriveLink(b.url);
-  const downloadCount = b.downloads || 0;
-  const bookKey = getObjectKey(booksList, b);
-  html += `
-    <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--primary); border-radius:8px;">
-      <strong>📖 ${b.title}</strong> <small style="color:var(--light-text);">par ${b.author}</small>
-      <div><span class="major-badge">${b.major}</span></div>
-      <a href="${downloadUrl}" class="drive-link" target="_blank" download onclick="incrementDownload('books', '${bookKey}')">
-        💾 Accéder au livre (${downloadCount})
-      </a>
-    </div>
-  `;
-});
+      const container = document.getElementById('biblioList');
+      if (!container) return;
 
+      const allBooks = Object.values(booksList);
+      const selectedMajor = document.getElementById('biblioFilterMajor').value;
+      const query = document.getElementById('searchBiblioInput').value.toLowerCase().trim();
+
+      let filteredBooks = allBooks;
+      if (selectedMajor !== 'ALL') {
+        filteredBooks = allBooks.filter(b => b.major === selectedMajor);
+      }
+
+      if (query) {
+        filteredBooks = filteredBooks.filter(b => b.title.toLowerCase().includes(query) || b.author.toLowerCase().includes(query));
+      }
+
+      if (!filteredBooks.length) {
+        container.innerHTML = '<p style="color:var(--light-text);">Aucun ouvrage correspondant trouvé.</p>';
+        return;
+      }
+
+      let html = '';
+      filteredBooks.forEach(b => {
+        const downloadUrl = formatDriveLink(b.url);
+        html += `
+          <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--primary); border-radius:8px;">
+            <strong>📖 ${b.title}</strong> <small style="color:var(--light-text);">par ${b.author}</small>
+            <div><span class="major-badge">${b.major}</span></div>
+            <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Accéder au livre</a>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
 
     function renderSchedules() {
       const schedContainer = document.getElementById('scheduleList');
