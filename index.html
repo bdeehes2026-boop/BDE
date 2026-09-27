@@ -985,17 +985,43 @@
       }
     }
 
-    function registerLogin() {
+function registerLogin() {
       if (!currentProfile) return;
+      
       const today = new Date().toISOString().split('T')[0];
-      db.ref('logins').push({ username: currentProfile.username, date: today });
+      const sessionKey = `logged_\({currentProfile.username}_\){today}`;
+
+      // Vérifie si l'utilisateur s'est déjà signal connecté aujourd'hui dans cette session de navigateur
+      if (sessionStorage.getItem(sessionKey)) {
+        return; // On ne fait rien de plus, évitant le doublon dans Firebase
+      }
+
+      db.ref('logins').push({ 
+        username: currentProfile.username, 
+        date: today 
+      }).then(() => {
+        // Marque la session comme enregistrée pour aujourd'hui
+        sessionStorage.setItem(sessionKey, 'true');
+      }).catch((error) => {
+        console.warn("Erreur lors de l'enregistrement de la visite :", error);
+      });
     }
 
     logoutBtn.addEventListener('click', () => {
+      // Optionnel : petite confirmation pour éviter les clics accidentels
+      if (!confirm("Voulez-vous vraiment vous déconnecter ?")) return;
+
       firebase.auth().signOut().then(() => {
         currentProfile = null;
+        activeDmUser = null; // Réinitialise la messagerie privée active si besoin
         localStorage.removeItem('ehes_user');
+        
+        // Nettoie les sessions de connexion si l'utilisateur veut changer de compte
+        sessionStorage.clear(); 
+
         checkUserSession();
+      }).catch((error) => {
+        alert("Erreur lors de la déconnexion : " + error.message);
       });
     });
 
@@ -1094,67 +1120,100 @@
       return url;
     }
 
-    function openProfileModal() {
+   function openProfileModal() {
       if (!currentProfile) return;
-      document.getElementById('profileName').value = currentProfile.name;
+
+      const profileNameInput = document.getElementById('profileName');
       const profileStudentOnly = document.getElementById('profileStudentOnly');
+      const profileModal = document.getElementById('profileModal');
+      const profileMajor = document.getElementById('profileMajor');
+      const profileLevel = document.getElementById('profileLevel');
+
+      if (!profileModal) return;
+
+      if (profileNameInput) {
+        profileNameInput.value = currentProfile.name || '';
+      }
 
       if (currentProfile.role === 'admin') {
-        profileStudentOnly.classList.add('hidden');
+        // L'admin peut tout voir
+        if (profileStudentOnly) profileStudentOnly.classList.remove('hidden');
+        if (profileMajor) { profileMajor.value = currentProfile.major || ''; profileMajor.disabled = false; }
+        if (profileLevel) { profileLevel.value = currentProfile.level || ''; profileLevel.disabled = false; }
       } else {
-        profileStudentOnly.classList.remove('hidden');
-        document.getElementById('profileMajor').value = currentProfile.major;
-        document.getElementById('profileLevel').value = currentProfile.level;
+        // L'étudiant peut voir sa filière/niveau mais NE PEUT PAS les modifier (champs verrouillés)
+        if (profileStudentOnly) profileStudentOnly.classList.remove('hidden');
+        if (profileMajor) { profileMajor.value = currentProfile.major || ''; profileMajor.disabled = true; }
+        if (profileLevel) { profileLevel.value = currentProfile.level || ''; profileLevel.disabled = true; }
       }
-      document.getElementById('profileModal').classList.remove('hidden');
-    }
 
-    function closeProfileModal() {
-      document.getElementById('profileModal').classList.add('hidden');
-    }
+      profileModal.classList.remove('hidden');
+    } 
 
-    document.getElementById('profileForm').addEventListener('submit', (e) => {
-      e.preventDefault();
+    function openProfileModal() {
       if (!currentProfile) return;
 
-      currentProfile.name = document.getElementById('profileName').value.trim();
-      if (currentProfile.role !== 'admin') {
-        currentProfile.major = document.getElementById('profileMajor').value;
-        currentProfile.level = document.getElementById('profileLevel').value;
+      const profileNameInput = document.getElementById('profileName');
+      const profileStudentOnly = document.getElementById('profileStudentOnly');
+      const profileModal = document.getElementById('profileModal');
+      const profileMajor = document.getElementById('profileMajor');
+      const profileLevel = document.getElementById('profileLevel');
+
+      if (!profileModal) return;
+
+      if (profileNameInput) {
+        profileNameInput.value = currentProfile.name || '';
       }
 
-      db.ref('users/' + currentProfile.id).update(currentProfile)
-        .then(() => {
-          localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
-          checkUserSession();
-          closeProfileModal();
-          alert("Profil mis à jour !");
-        });
-    });
+      if (currentProfile.role === 'admin') {
+        // L'admin peut tout voir
+        if (profileStudentOnly) profileStudentOnly.classList.remove('hidden');
+        if (profileMajor) { profileMajor.value = currentProfile.major || ''; profileMajor.disabled = false; }
+        if (profileLevel) { profileLevel.value = currentProfile.level || ''; profileLevel.disabled = false; }
+      } else {
+        // L'étudiant peut voir sa filière/niveau mais NE PEUT PAS les modifier (champs verrouillés)
+        if (profileStudentOnly) profileStudentOnly.classList.remove('hidden');
+        if (profileMajor) { profileMajor.value = currentProfile.major || ''; profileMajor.disabled = true; }
+        if (profileLevel) { profileLevel.value = currentProfile.level || ''; profileLevel.disabled = true; }
+      }
 
+      profileModal.classList.remove('hidden');
+    }
 function renderCourses() {
       if (!coursesContainer) return;
-      const allCourses = Object.values(coursesList);
-      const selectedMajor = document.getElementById('filterMajor').value;
-      const query = document.getElementById('searchCourseInput').value.toLowerCase().trim();
+      
+      const allCourses = Object.values(coursesList || {});
+      const filterMajorEl = document.getElementById('filterMajor');
+      const searchCourseInput = document.getElementById('searchCourseInput');
+
+      const selectedMajor = filterMajorEl ? filterMajorEl.value : 'ALL';
+      const query = searchCourseInput ? searchCourseInput.value.toLowerCase().trim() : '';
 
       let userCourses = allCourses;
+
       // Si ce n'est pas un admin, on filtre par niveau. Si c'est un admin, on affiche tout.
       if (currentProfile && currentProfile.role !== 'admin') {
         userCourses = allCourses.filter(c => c.level === currentProfile.level);
       }
 
+      // Filtrage par filière
       if (selectedMajor !== 'ALL') {
         userCourses = userCourses.filter(c => c.major === selectedMajor);
       }
 
+      // Filtrage par recherche textuelle (titre ou description)
       if (query) {
-        userCourses = userCourses.filter(c => c.title.toLowerCase().includes(query));
+        userCourses = userCourses.filter(c => 
+          (c.title && c.title.toLowerCase().includes(query)) || 
+          (c.description && c.description.toLowerCase().includes(query))
+        );
       }
 
+      // Si aucun cours ne correspond aux critères
       if (!userCourses.length) {
-        coursesContainer.innerHTML = '
-
+        coursesContainer.innerHTML = `Aucun cours trouvé pour vos critères.';
+        return;
+}
     function renderBiblio() {
       const container = document.getElementById('biblioList');
       if (!container) return;
@@ -1281,23 +1340,36 @@ function renderCourses() {
     }
 
     function updateNotifBadge() {
+      const badge = document.getElementById('notifBadge');
+      if (!badge) return; // Sécurité si le badge n'est pas sur la page
+
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-      const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
+      const now = Date.now();
+
+      const allPosts = Object.values(postsList || {});
+      const allNotifs = Object.values(notificationsList || {});
+
+      const recentPosts = allPosts.filter(p => p && p.timestamp && (now - p.timestamp) < ONE_WEEK_MS);
       
-      const userNotifs = Object.values(notificationsList).filter(n => {
-        if ((Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
+      const userNotifs = allNotifs.filter(n => {
+        if (!n || !n.timestamp || (now - n.timestamp) >= ONE_WEEK_MS) return false;
         if (n.target === 'all') return true;
         if (currentProfile && n.target === currentProfile.id) return true;
-        if (currentProfile && n.target === 'leaders' && isLeader(currentProfile)) return true;
+        if (currentProfile && n.target === 'leaders' && typeof isLeader === 'function' && isLeader(currentProfile)) return true;
         return false;
       });
 
       const totalNotifs = recentPosts.length + userNotifs.length;
       
-      const badge = document.getElementById('notifBadge');
+      // Initialisation du compteur si non défini
+      if (typeof unreadNotifCount === 'undefined') {
+        window.unreadNotifCount = 0;
+      }
+
       if (unreadNotifCount === 0 && totalNotifs > 0) {
         unreadNotifCount = totalNotifs;
       }
+
       if (unreadNotifCount > 0) {
         badge.innerText = unreadNotifCount;
         badge.style.display = 'block';
@@ -1305,112 +1377,81 @@ function renderCourses() {
         badge.style.display = 'none';
       }
     }
-
-    function renderDropdownNotifications() {
-      const container = document.getElementById('notifDropdownList');
-      if (!container) return;
-
-      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-      const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS).map(p => ({ title: p.title, content: p.content, timestamp: p.timestamp, type: 'post' }));
-      
-      const userNotifs = Object.values(notificationsList).filter(n => {
-        if ((Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
-        if (n.target === 'all') return true;
-        if (currentProfile && n.target === currentProfile.id) return true;
-        if (currentProfile && n.target === 'leaders' && isLeader(currentProfile)) return true;
-        return false;
-      }).map(n => ({ title: n.title, content: n.body, timestamp: n.timestamp, type: 'notif' }));
-      
-      const allItems = [...recentPosts, ...userNotifs];
-      allItems.sort((a,b) => b.timestamp - a.timestamp);
-
-      if (!allItems.length) {
-        container.innerHTML = '<p id="noNotifDropdownText" style="text-align: center; color: var(--light-text); font-size: 0.85rem; padding: 15px 0; margin: 0;">Aucune notification pour le moment</p>';
-      } else {
-        let html = '';
-        allItems.forEach(p => {
-          const prefix = p.type === 'notif' ? '📲' : '📢';
-          const timeStr = new Date(p.timestamp).toLocaleDateString();
-          html += `
-            <div style="padding: 8px 0; border-bottom: 1px solid #eee; margin-bottom: 5px;">
-              <strong style="font-size: 0.85rem; color: var(--primary);">${prefix} ${p.title}</strong>
-              <p style="margin: 3px 0; font-size: 0.8rem; color: #555;">${p.content}</p>
-              <div style="font-size: 0.68rem; color: var(--light-text); text-align: right;">${timeStr}</div>
-            </div>
-          `;
-        });
-        container.innerHTML = html;
-      }
-    }
-
+    
     function marquerToutCommeLu() {
       unreadNotifCount = 0;
       const badge = document.getElementById('notifBadge');
-      badge.style.display = 'none';
-      badge.innerText = '0';
-      document.getElementById('notifPanelDropdown').style.display = 'none';
+      if (badge) {
+        badge.style.display = 'none';
+        badge.innerText = '0';
+      }
+      const notifPanel = document.getElementById('notifPanelDropdown');
+      if (notifPanel) {
+        notifPanel.style.display = 'none';
+      }
     }
 
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
     const chatBox = document.getElementById('chatBox');
 
-    chatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (!currentProfile) return;
+    if (chatForm && chatInput) {
+      chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!currentProfile) return;
 
-      const text = chatInput.value.trim();
-      if (!text) return;
+        const text = chatInput.value.trim();
+        if (!text) return;
 
-      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      db.ref('messages').push({
-        sender: currentProfile.name,
-        level: currentProfile.level,
-        major: currentProfile.major,
-        text: text,
-        time: timeStr,
-        timestamp: Date.now()
-      });
-
-      chatInput.value = '';
-    });
-
-    function renderChat() {
-      const entries = Object.entries(messagesList);
-      entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-
-      chatBox.innerHTML = entries.length ? '' : '<p style="color:var(--light-text);">Aucun message pour le moment.</p>';
-      
-      entries.forEach(([key, m]) => {
-        const majorInfo = m.major ? ` - ${m.major}` : '';
-        const isAdmin = (currentProfile && currentProfile.role === 'admin');
-        const deleteBtn = isAdmin ? `<button class="btn-danger" style="margin-top:4px;" onclick="deleteChatMessage('${key}')">🗑️ Supprimer</button>` : '';
-        const reportBtn = (currentProfile && !isAdmin) ? `<button class="btn-warning" onclick="reportChatMessage('${key}')">🚩 Signaler</button>` : '';
-
-        chatBox.innerHTML += `
-          <div class="chat-msg">
-            <span class="chat-time">${m.time}</span>
-            <strong>${m.sender} (${m.level}${majorInfo})</strong>
-            <div style="margin-top: 3px;">${m.text}</div>
-            ${deleteBtn} ${reportBtn}
-          </div>
-        `;
-      });
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function reportChatMessage(msgKey) {
-      if (confirm("Signaler ce message à l'administration du BDE ?")) {
-        const msg = messagesList[msgKey];
-        db.ref('reports').push({
-          msgKey: msgKey,
-          sender: msg.sender,
-          text: msg.text,
-          reportedBy: currentProfile ? currentProfile.name : "Anonyme",
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        // Envoi sécurisé dans Firebase avec gestion d'erreur optionnelle
+        db.ref('messages').push({
+          sender: currentProfile.name || 'Anonyme',
+          level: currentProfile.level || '',
+          major: currentProfile.major || '',
+          text: text,
+          time: timeStr,
           timestamp: Date.now()
+        }).catch(err => {
+          console.error("Erreur lors de l'envoi du message :", err);
         });
-        alert("Signalement transmis à l'Admin ! Merci.");
+
+        chatInput.value = '';
+      });
+    }
+function renderChat() {
+      const chatBox = document.getElementById('chatBox');
+      if (!chatBox) return;
+
+      const allMessages = Object.values(messagesList || {});
+
+      // S'il n'y a aucun message
+      if (!allMessages.length) {
+        chatBox.innerHTML = 'Aucun message pour l'instant.';
+        return;
       }
+    function reportChatMessage(msgKey) {
+      if (!confirm("Signaler ce message à l'administration du BDE ?")) return;
+      
+      const msg = messagesList ? messagesList[msgKey] : null;
+      if (!msg) {
+        alert("Ce message n'existe plus.");
+        return;
+      }
+
+      db.ref('reports').push({
+        msgKey: msgKey,
+        sender: msg.sender || 'Inconnu',
+        text: msg.text || '',
+        reportedBy: currentProfile ? currentProfile.name : "Anonyme",
+        timestamp: Date.now()
+      }).then(() => {
+        alert("Signalement transmis à l'Admin ! Merci.");
+      }).catch(err => {
+        console.error("Erreur lors du signalement :", err);
+        alert("Une erreur est survenue lors de l'envoi du signalement.");
+      });
     }
 
     function deleteChatMessage(msgKey) {
