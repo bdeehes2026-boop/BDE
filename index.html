@@ -791,23 +791,60 @@
       }, 100);
     }
 
+   // Navigation et scroll depuis le menu mobile
     function navigateAndScroll(sectionId) {
-      closeSideDrawer();
-      scrollToAdminSection(sectionId);
+      if (typeof closeSideDrawer === 'function') {
+        closeSideDrawer();
+      }
+      
+      // Petit délai pour laisser le menu se fermer avant de scroller en douceur
+      setTimeout(() => {
+        if (typeof scrollToAdminSection === 'function') {
+          scrollToAdminSection(sectionId);
+        } else {
+          const target = document.getElementById(sectionId);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      }, 150);
     }
 
+    // Gestion des gestes tactiles (Swipes)
     let touchStartX = 0;
     let touchEndX = 0;
+    const minSwipeDistance = 70; // Seuil minimum en pixels pour valider un swipe
 
     document.addEventListener('touchstart', (e) => {
-      touchStartX = e.changedTouches[0].screenX;
+      if (e.changedTouches && e.changedTouches[0]) {
+        touchStartX = e.changedTouches[0].screenX;
+      }
     }, false);
 
     document.addEventListener('touchend', (e) => {
-      touchEndX = e.changedTouches[0].screenX;
-      handleSwipe();
+      if (e.changedTouches && e.changedTouches[0]) {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+      }
     }, false);
 
+    function handleSwipe() {
+      const distance = touchEndX - touchStartX;
+
+      if (Math.abs(distance) < minSwipeDistance) return; // Ignore les petits mouvements
+
+      if (distance > 0) {
+        // Swipe vers la droite -> Ouvre le menu latéral (si la fonction existe)
+        if (typeof openSideDrawer === 'function') {
+          openSideDrawer();
+        }
+      } else {
+        // Swipe vers la gauche -> Ferme le menu latéral (si la fonction existe)
+        if (typeof closeSideDrawer === 'function') {
+          closeSideDrawer();
+        }
+      }
+    }
     function handleSwipe() {
       if (touchEndX - touchStartX > 80 && touchStartX < 50) {
         toggleSideDrawer();
@@ -817,14 +854,30 @@
     }
 
     function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      // 1. Masquer tous les contenus d'onglets
+      document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.add('hidden');
+      });
+      
+      // 2. Retirer la classe 'active' de tous les boutons d'onglets
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('active');
+      });
 
+      // 3. Afficher l'onglet cible s'il existe
       const targetTab = document.getElementById(tabId);
-      if (targetTab) targetTab.classList.remove('hidden');
+      if (targetTab) {
+        targetTab.classList.remove('hidden');
+      } else {
+        console.warn(`L'onglet avec l'ID "${tabId}" est introuvable.`);
+        return;
+      }
 
-      if (window.event && window.event.currentTarget && window.event.currentTarget.classList.contains('tab-btn')) {
-        window.event.currentTarget.classList.add('active');
+      // 4. Activer le bouton correspondant de manière robuste 
+      // (cherche via data-tab en priorité, ou se replie sur l'événement s'il existe)
+      const targetBtn = document.querySelector(`[data-tab="${tabId}"]`) || (window.event && window.event.currentTarget);
+      if (targetBtn && targetBtn.classList.contains('tab-btn')) {
+        targetBtn.classList.add('active');
       }
     }
 
@@ -860,24 +913,42 @@
     const logoutSection = document.getElementById('logoutSection');
     const logoutBtn = document.getElementById('logoutBtn');
 
+    // Variable d'état globale pour suivre le mode d'authentification
+    let isRegisterMode = false;
+
     function toggleAuthMode(e) {
-      if (e) e.preventDefault();
+      if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+      }
+      
       isRegisterMode = !isRegisterMode;
+
+      // Récupération sécurisée des éléments du DOM liés à l'authentification
+      const authTitle = document.getElementById('authTitle');
+      const registerFields = document.getElementById('registerFields');
+      const authSubmitBtn = document.getElementById('authSubmitBtn');
+      const toggleAuthText = document.getElementById('toggleAuthText');
+      const toggleAuthLink = document.getElementById('toggleAuthLink');
+      const authForm = document.getElementById('authForm'); // Optionnel si tu as un formulaire global
+
+      if (authForm) {
+        authForm.reset(); // Vide les champs pour repartir sur une saisie propre
+      }
+
       if (isRegisterMode) {
-        authTitle.innerText = "Créer un compte";
-        registerFields.classList.remove('hidden');
-        authSubmitBtn.innerText = "S'inscrire";
-        toggleAuthText.innerText = "Déjà inscrit ?";
-        toggleAuthLink.innerText = "Se connecter";
+        if (authTitle) authTitle.innerText = "Créer un compte";
+        if (registerFields) registerFields.classList.remove('hidden');
+        if (authSubmitBtn) authSubmitBtn.innerText = "S'inscrire";
+        if (toggleAuthText) toggleAuthText.innerText = "Déjà inscrit ?";
+        if (toggleAuthLink) toggleAuthLink.innerText = "Se connecter";
       } else {
-        authTitle.innerText = "Espace Connexion";
-        registerFields.classList.add('hidden');
-        authSubmitBtn.innerText = "Se connecter";
-        toggleAuthText.innerText = "Nouveau sur le portail ?";
-        toggleAuthLink.innerText = "Créer un compte";
+        if (authTitle) authTitle.innerText = "Espace Connexion";
+        if (registerFields) registerFields.classList.add('hidden');
+        if (authSubmitBtn) authSubmitBtn.innerText = "Se connecter";
+        if (toggleAuthText) toggleAuthText.innerText = "Nouveau sur le portail ?";
+        if (toggleAuthLink) toggleAuthLink.innerText = "Créer un compte";
       }
     }
-
     function handleAuthSubmit(e) {
       e.preventDefault();
       const email = document.getElementById('authUsername').value.trim();
@@ -1871,43 +1942,79 @@ Signalisé par : ${rep.reportedBy || 'Anonyme'}
       const container = document.getElementById('adminStudentsList');
       if (!container) return;
 
-      const entries = Object.entries(usersList);
+      // Sécurité si usersList n'est pas initialisé
+      const safeUsers = usersList || {};
+      const entries = Object.entries(safeUsers);
 
       if (!entries.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun utilisateur inscrit pour le moment.</p>';
+        container.innerHTML = 'Aucun utilisateur inscrit pour le moment.';
+return;
+}
+const levels = ['ADMIN', 'L1', 'L2', 'L3', 'M1', 'M2', 'Alumni'];
+  let html = '';
+
+  levels.forEach(lvl => {
+    const list = entries.filter(([key, u]) => u && u.level === lvl);
+    if (list.length > 0) {
+      const title = lvl === 'ADMIN' ? '⚙️ Administrateurs BDE' : (lvl === 'Alumni' ? '🎓 Alumni (Anciens Élèves)' : `🎓 Niveau ${lvl}`);
+      html += `
+   html += ${title} (${list.length})
+  list.forEach(([key, st]) => {
+        if (!st) return;
+        const majorText = st.major ? `${st.major}` : '';
+        const adminPostText = st.adminPost ? ` [${st.adminPost}]` : '';
+        const promoteBtn = st.role !== 'admin' && st.level !== 'Alumni' ? `🎓 Passage Supérieur` : '';
+        
+        html += `👤 ${st.name || 'Inconnu'}${adminPostText} (@${st.username || 'N/A'}) ${majorText}${promoteBtn}🗑️ Supprimer; }); html += `;}});
+  container.innerHTML = html || 'Aucun utilisateur enregistré.';
+}
+    // Gère le passage au niveau supérieur (ex: L1 -> L2, L2 -> L3, etc. et M2 -> Alumni)
+    function promoteStudentLevel(userId) {
+      const safeUsers = usersList || {};
+      const student = safeUsers[userId];
+      if (!student) return;
+
+      const progression = {
+        'L1': 'L2',
+        'L2': 'L3',
+        'L3': 'M1',
+        'M1': 'M2',
+        'M2': 'Alumni'
+      };
+
+      const nextLevel = progression[student.level];
+      if (!nextLevel) {
+        alert("Ce niveau ne peut pas être incrémenté automatiquement.");
         return;
       }
 
-      const levels = ['ADMIN', 'L1', 'L2', 'L3', 'M1', 'M2', 'Alumni'];
-      let html = '';
-
-      levels.forEach(lvl => {
-        const list = entries.filter(([key, u]) => u.level === lvl);
-        if (list.length > 0) {
-          const title = lvl === 'ADMIN' ? '⚙️ Administrateurs BDE' : (lvl === 'Alumni' ? '🎓 Alumni (Anciens Élèves)' : `🎓 Niveau ${lvl}`);
-          html += `<div class="level-group">`;
-          html += `<div class="level-title">${title} (${list.length})</div>`;
-          list.forEach(([key, st]) => {
-            const majorText = st.major ? `<span class="major-badge">${st.major}</span>` : '';
-            const adminPostText = st.adminPost ? ` <span style="background:var(--secondary); color:#2c3e50; font-size:0.7rem; padding:1px 6px; border-radius:4px;">[${st.adminPost}]</span>` : '';
-            const promoteBtn = st.role !== 'admin' && st.level !== 'Alumni' ? `<button class="btn-promote" onclick="promoteStudentLevel('${key}')">🎓 Passage Supérieur</button>` : '';
-            html += `
-              <div class="student-item">
-                <span>👤 <strong>${st.name}</strong>${adminPostText} (@${st.username}) ${majorText}</span>
-                <div>
-                  ${promoteBtn}
-                  <button class="btn-danger" style="margin:0;" onclick="deleteStudent('${key}')">🗑️ Supprimer</button>
-                </div>
-              </div>
-            `;
-          });
-          html += `</div>`;
-        }
-      });
-
-      container.innerHTML = html || '<p style="color:var(--light-text);">Aucun utilisateur enregistré.</p>';
+      if (confirm(`Voulez-vous faire passer \({student.name} du niveau\){student.level} au niveau ${nextLevel} ?`)) {
+        db.ref('users/' + userId).update({ level: nextLevel }, (error) => {
+          if (!error) {
+            alert("Niveau mis à jour avec succès !");
+          } else {
+            alert("Erreur lors de la mise à jour : " + error.message);
+          }
+        });
+      }
     }
 
+    // Supprime un utilisateur de la base de données
+    function deleteStudent(userId) {
+      const safeUsers = usersList || {};
+      const student = safeUsers[userId];
+      const studentName = student ? student.name : 'cet utilisateur';
+
+      if (confirm(`⚠️ Voulez-vous vraiment supprimer définitivement ${studentName} de la plateforme ?`)) {
+        db.ref('users/' + userId).remove((error) => {
+          if (!error) {
+            alert("Utilisateur supprimé avec succès.");
+          } else {
+            alert("Erreur lors de la suppression : " + error.message);
+          }
+        });
+      }
+    }
     function promoteStudentLevel(userKey) {
       const student = usersList[userKey];
       if (!student) return;
@@ -1952,28 +2059,74 @@ Signalisé par : ${rep.reportedBy || 'Anonyme'}
     }
 
     function deleteStudent(userKey) {
-      if (confirm("Supprimer définitivement cet utilisateur de la plateforme ?")) {
-        db.ref('users/' + userKey).remove();
+      // Sécurité : récupérer le nom pour un message plus clair
+      const safeUsers = usersList || {};
+      const student = safeUsers[userKey];
+      const studentName = student ? student.name : "cet utilisateur";
+
+      if (confirm(`⚠️ Voulez-vous vraiment supprimer définitivement ${studentName} de la plateforme ?`)) {
+        db.ref('users/' + userKey).remove((error) => {
+          if (!error) {
+            alert("Utilisateur supprimé avec succès.");
+            
+            // Si l'admin supprime son propre compte par erreur, on le déconnecte proprement
+            if (currentProfile && currentProfile.id === userKey) {
+              localStorage.removeItem('ehes_user');
+              location.reload();
+            }
+          } else {
+            alert("Erreur lors de la suppression : " + error.message);
+          }
+        });
       }
     }
 
     function renderAdminSuggestions() {
       const container = document.getElementById('adminSuggestionsList');
       if (!container) return;
-      const suggs = Object.values(suggestionsList);
-      suggs.sort((a,b) => b.timestamp - a.timestamp);
 
-      container.innerHTML = suggs.length ? '' : '<p style="color:var(--light-text);">Aucune suggestion reçue.</p>';
-      suggs.forEach(s => {
-        container.innerHTML += `
-          <div class="suggestion-item">
-            <strong>${s.title}</strong> <small>par ${s.author} - ${s.date}</small>
-            <p style="margin: 5px 0 0 0;">${s.content}</p>
-          </div>
-        `;
-      });
+      // Sécurité si suggestionsList n'est pas initialisé
+      const safeSuggestions = suggestionsList || {};
+      const entries = Object.entries(safeSuggestions);
+
+      if (!entries.length) {
+        container.innerHTML = 'Aucune suggestion reçue.';
+return;
+}
+      // Tri par timestamp décroissant (plus récent au plus ancien)
+  entries.sort((a, b) => (b[1]?.timestamp || 0) - (a[1]?.timestamp || 0));
+
+  let html = '';
+  entries.forEach(([key, s]) => {
+    if (!s) return;
+
+    html += `${s.title || 'Sans titre'}Par ${s.author || 'Anonyme'} -${s.date || 'Date inconnue'}${s.content || ''}🗑️ Supprimer`;
+  });
+
+  container.innerHTML = html;
+}
+    ### ➕ La fonction de suppression associée (`deleteSuggestion`) :
+Pour que le bouton de suppression de la suggestion fonctionne directement :
+
+```javascript
+    function deleteSuggestion(suggestionKey) {
+      if (confirm("Voulez-vous vraiment supprimer cette suggestion ?")) {
+        db.ref('suggestions/' + suggestionKey).remove((error) => {
+          if (error) {
+            alert("Erreur lors de la suppression : " + error.message);
+          }
+        });
+      }
     }
 
+    let suggestionsList = {};
+    function initSuggestionsListener() {
+      db.ref('suggestions').on('value', (snapshot) => {
+        suggestionsList = snapshot.val() || {};
+        renderAdminSuggestions();
+      });
+    }
+    
     function renderAdminCoursesManage() {
       const container = document.getElementById('adminManageCoursesList');
       if (!container) return;
