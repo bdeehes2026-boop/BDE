@@ -1493,19 +1493,30 @@ function renderChat() {
     });
 
     /* GESTION DES PROJETS BDE AVEC NOTIFICATION CIBLÉE LEADERS */
-    function submitProject() {
-      if (!currentProfile || currentProfile.role !== 'admin') return;
-      const title = document.getElementById('projTitle').value.trim();
-      const desc = document.getElementById('projDesc').value.trim();
-      const month = document.getElementById('projTargetMonth').value;
+   function submitProject() {
+      // Vérifie si le profil existe, s'il est admin, ET s'il N'EST PAS un leader
+      if (!currentProfile || currentProfile.role !== 'admin' || (typeof isLeader === 'function' && isLeader(currentProfile))) {
+        alert("⚠️ Les leaders (Président / Vice-Président) ne peuvent pas soumettre de projets. Leur rôle est de les valider ou de les rejeter !");
+        return;
+      }
+
+      const titleInput = document.getElementById('projTitle');
+      const descInput = document.getElementById('projDesc');
+      const monthInput = document.getElementById('projTargetMonth');
+
+      if (!titleInput || !descInput || !monthInput) return;
+
+      const title = titleInput.value.trim();
+      const desc = descInput.value.trim();
+      const month = monthInput.value;
 
       if (!title || !desc || !month) {
         alert("Veuillez remplir tous les champs du projet.");
         return;
       }
 
-      const allProjects = Object.values(projectsList);
-      const myProjectsThisMonth = allProjects.filter(p => p.authorId === currentProfile.id && p.month === month);
+      const allProjects = Object.values(projectsList || {});
+      const myProjectsThisMonth = allProjects.filter(p => p && p.authorId === currentProfile.id && p.month === month);
       
       if (myProjectsThisMonth.length >= 3) {
         alert("⚠️ Votre ministère a déjà atteint la limite de 3 projets pour ce mois !");
@@ -1519,29 +1530,45 @@ function renderChat() {
         desc,
         month,
         authorId: currentProfile.id,
-        authorName: currentProfile.name,
+        authorName: currentProfile.name || 'Inconnu',
         authorPost: authorPostName,
         status: 'En attente',
         timestamp: Date.now()
       }, (error) => {
         if (!error) {
-          // Notification ciblée pour déclencher la cloche des leaders
           db.ref('notifications').push({
             title: "📋 Nouveau projet à valider",
-            body: `Le ministère de [${authorPostName}] (${currentProfile.name}) a soumis le projet : "${title}".`,
+            body: `Le ministère de [\({authorPostName}] (\){currentProfile.name}) a soumis le projet : "${title}".`,
             target: 'leaders',
             timestamp: Date.now()
           });
-
+        // Exemple rapide à placer lors du chargement de la page
+      if (currentProfile && typeof isLeader === 'function' && isLeader(currentProfile)) {
+      const formElement = document.getElementById('projectSubmissionForm'); // ID de ton formulaire de soumission
+      if (formElement) formElement.style.display = 'none'; // Cache le formulaire aux leaders
+         }
           alert("Projet soumis avec succès ! Le Président et le Vice-Président ont été notifiés.");
-          document.getElementById('projTitle').value = '';
-          document.getElementById('projDesc').value = '';
+          titleInput.value = '';
+          descInput.value = '';
+          monthInput.value = '';
         } else {
           alert("Erreur lors de la soumission : " + error.message);
         }
       });
     }
+  function isLeader(profile) {
+      if (!profile) return false;
 
+      // Liste des rôles ou des postes considérés comme "leaders" (Président, Vice-Président, etc.)
+      const leaderRoles = ['president', 'vice-president', 'admin_general'];
+      const leaderPosts = ['Président', 'Vice-Président', 'Secrétaire Général'];
+
+      // Vérifie si le profil possède un rôle ou un poste de dirigeant
+      const hasLeaderRole = profile.role && leaderRoles.includes(profile.role.toLowerCase());
+      const hasLeaderPost = profile.adminPost && leaderPosts.includes(profile.adminPost);
+
+      return hasLeaderRole || hasLeaderPost;
+    }
     function renderProjects() {
       const container = document.getElementById('projectsList');
       const filterMonth = document.getElementById('projectMonthFilter').value;
@@ -1586,9 +1613,33 @@ function renderChat() {
     }
 
     function updateProjectStatus(key, status) {
+      // Sécurité : vérifier que l'utilisateur est bien un leader
+      if (!currentProfile || (typeof isLeader === 'function' && !isLeader(currentProfile))) {
+        alert("Action non autorisée.");
+        return;
+      }
+
       db.ref('projects/' + key).update({ status }, (error) => {
         if (!error) {
+          // (Optionnel) Récupérer les infos du projet pour notifier l'auteur si besoin
+          const project = projectsList ? projectsList[key] : null;
+          if (project) {
+            db.ref('notifications').push({
+              title: `📢 Projet ${status.toLowerCase()}`,
+              body: `Le projet "\({project.title}" soumis par votre ministère a été\){status.toLowerCase()}.`,
+              targetId: project.authorId, // Cible spécifique si tu gères les notifications par utilisateur, ou 'all'
+              timestamp: Date.now()
+            });
+          }
+
           alert(`Le projet a été marqué comme : ${status}`);
+          
+          // Actualise l'affichage des projets si la fonction existe
+          if (typeof renderProjects === 'function') {
+            renderProjects();
+          }
+        } else {
+          alert("Erreur lors de la mise à jour : " + error.message);
         }
       });
     }
@@ -1616,57 +1667,94 @@ function renderChat() {
 
     function selectDmUser(userId, userName) {
       activeDmUser = userId;
-      document.getElementById('dmChatHeader').innerText = `Discussion privée avec ${userName}`;
-      renderDmConversation(userId);
+      
+      const header = document.getElementById('dmChatHeader');
+      if (header) {
+        header.innerText = `Discussion privée avec ${userName || 'Utilisateur'}`;
+      }
+      
+      if (typeof renderDmConversation === 'function') {
+        renderDmConversation(userId);
+      }
     }
-
     function renderDmConversation(otherUserId) {
       const box = document.getElementById('dmMessagesBox');
       if (!box || !currentProfile) return;
 
-      const msgs = Object.values(dmMessagesList);
-      const filtered = msgs.filter(m => (m.sender === currentProfile.id && m.receiver === otherUserId) || (m.sender === otherUserId && m.receiver === currentProfile.id));
-      filtered.sort((a,b) => a.timestamp - b.timestamp);
+      // Sécurité si dmMessagesList n'est pas encore initialisé
+      const safeList = dmMessagesList || {};
+      const msgs = Object.values(safeList);
+
+      const filtered = msgs.filter(m => 
+        m && (
+          (m.sender === currentProfile.id && m.receiver === otherUserId) || 
+          (m.sender === otherUserId && m.receiver === currentProfile.id)
+        )
+      );
+
+      filtered.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
       let html = '';
       filtered.forEach(m => {
         let isMe = m.sender === currentProfile.id;
+        // Couleurs distinctes : vert clair pour toi, rose/rouge clair pour l'autre
         let bg = isMe ? '#d1e7dd' : '#f8d7da';
         let align = isMe ? 'text-align:right;' : 'text-align:left;';
-        html += `
-          <div style="margin-bottom:6px; ${align}">
-            <div style="display:inline-block; background:${bg}; padding:6px 10px; border-radius:8px; font-size:0.85rem; max-width:80%; text-align:left;">
-              ${m.text}
-            </div>
-          </div>
-        `;
-      });
-      box.innerHTML = html || '<p style="color:var(--light-text); font-size:0.8rem; text-align:center;">Envoyez votre premier message confidentiel.</p>';
+        
+        html += '{m.text || ''}';
+});
+        box.innerHTML = html || 'Envoyez votre premier message confidentiel.';
       box.scrollTop = box.scrollHeight;
-    }
+}
+    // Variable globale pour stocker les messages DM
+    let dmMessagesList = {};
 
-    function sendDmMessage(e) {
-      e.preventDefault();
+    function initDmListener() {
+      db.ref('dm_messages').on('value', (snapshot) => {
+        dmMessagesList = snapshot.val() || {};
+        
+        // Si une conversation est actuellement ouverte, on la réaffiche instantanément
+        if (typeof activeDmUser !== 'undefined' && activeDmUser && typeof renderDmConversation === 'function') {
+          renderDmConversation(activeDmUser);
+        }
+      });
+    }
+  function sendDmMessage(e) {
+      if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+      }
+
       if (!currentProfile || !activeDmUser) {
         alert("Veuillez sélectionner un contact dans la liste.");
         return;
       }
+
       const input = document.getElementById('dmInput');
+      if (!input) return;
+
       const text = input.value.trim();
       if (!text) return;
 
       db.ref('dm_messages').push({
         sender: currentProfile.id,
         receiver: activeDmUser,
-        text,
+        text: text,
         timestamp: Date.now()
+      }, (error) => {
+        if (!error) {
+          input.value = '';
+        } else {
+          alert("Erreur d'envoi : " + error.message);
+        }
       });
-
-      input.value = '';
     }
 
+    // Variables globales pour stocker les listes nécessaires aux stats
+    let usersList = {};
+    let loginsList = {};
+
     function loadAdminStats() {
-      const usersArray = Object.values(usersList);
+      const usersArray = Object.values(usersList || {});
       const statInscritsEl = document.getElementById('statInscrits');
       const statConnectesEl = document.getElementById('statConnectes');
       
@@ -1676,35 +1764,96 @@ function renderChat() {
       
       if (statConnectesEl) {
         const today = new Date().toISOString().split('T')[0];
-        const loginsArray = Object.values(loginsList);
-        const todayLogins = loginsArray.filter(l => l.date === today).length;
+        const loginsArray = Object.values(loginsList || {});
+        // Compte combien de connexions ont eu lieu aujourd'hui
+        const todayLogins = loginsArray.filter(l => l && l.date === today).length;
         statConnectesEl.innerText = todayLogins;
       }
     }
+  function initStatsListeners() {
+      // Écoute des utilisateurs inscrits
+      db.ref('users').on('value', (snapshot) => {
+        usersList = snapshot.val() || {};
+        loadAdminStats();
+      });
+
+      // Écoute des connexions (logins)
+      db.ref('logins').on('value', (snapshot) => {
+        loginsList = snapshot.val() || {};
+        loadAdminStats();
+      });
+    }
+
+    // Variable globale pour stocker les signalements
+    let reportsList = {};
 
     function renderAdminReports() {
       const container = document.getElementById('adminReportsList');
       if (!container) return;
 
-      const entries = Object.entries(reportsList);
+      // Sécurité si reportsList n'est pas initialisé
+      const safeReports = reportsList || {};
+      const entries = Object.entries(safeReports);
+
       if (!entries.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun signalement en attente.</p>';
+        container.innerHTML = 'Aucun signalement en attente.';
         return;
+}
+      let html = '';
+  entries.forEach(([repKey, rep]) => {
+    if (!rep) return;
+    
+    html += `
+Message de ${rep.sender || 'Inconnu'} : "${rep.text || ''}"
+
+
+Signalisé par : ${rep.reportedBy || 'Anonyme'}
+
+
+🗑️ Supprimer
+✅ Ignorer
+`;
+  });
+
+  container.innerHTML = html;
+}
+  ### Les fonctions manquantes de modération (`deleteReportedMsg` et `ignoreReport`) :
+
+```javascript
+    // Supprime le message du forum ET efface le signalement associé
+    function deleteReportedMsg(msgKey, reportKey) {
+      if (!confirm("Voulez-vous vraiment supprimer ce message du forum et effacer le signalement ?")) return;
+
+      // Supprime le message du forum
+      if (msgKey) {
+        db.ref('forum_messages/' + msgKey).remove();
       }
 
-      let html = '';
-      entries.forEach(([repKey, rep]) => {
-        html += `
-          <div class="manage-item">
-            <strong>Message de ${rep.sender} :</strong> "${rep.text}"<br>
-            <small style="color:var(--light-text);">Signalisé par : ${rep.reportedBy}</small><br>
-            <button class="btn-danger" onclick="deleteReportedMsg('${rep.msgKey}', '${repKey}')">🗑️ Supprimer le message du forum</button>
-            <button class="btn-gold" style="padding: 4px 8px; font-size:0.75rem; width:auto;" onclick="ignoreReport('${repKey}')">✅ Ignorer</button>
-          </div>
-        `;
+      // Supprime le signalement de la liste
+      db.ref('reports/' + reportKey).remove((error) => {
+        if (!error) {
+          alert("Le message a été supprimé et le signalement résolu.");
+        } else {
+          alert("Erreur : " + error.message);
+        }
       });
+    }
 
-      container.innerHTML = html;
+    // Ignore le signalement sans supprimer le message
+    function ignoreReport(reportKey) {
+      db.ref('reports/' + reportKey).remove((error) => {
+        if (!error) {
+          alert("Signalement ignoré et retiré de la liste.");
+        } else {
+          alert("Erreur : " + error.message);
+        }
+      });
+    }
+    function initReportsListener() {
+      db.ref('reports').on('value', (snapshot) => {
+        reportsList = snapshot.val() || {};
+        renderAdminReports();
+      });
     }
 
     function deleteReportedMsg(msgKey, repKey) {
