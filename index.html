@@ -1292,8 +1292,17 @@
     function updateNotifBadge() {
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
       const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
-      const recentPushNotifs = Object.values(notificationsList).filter(n => (Date.now() - n.timestamp) < ONE_WEEK_MS);
-      const totalNotifs = recentPosts.length + recentPushNotifs.length;
+      
+      // Filtrer les notifications destinées à l'utilisateur actuel (ou 'all' / PR / VP)
+      const userNotifs = Object.values(notificationsList).filter(n => {
+        if ((Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
+        if (n.target === 'all') return true;
+        if (currentProfile && n.target === currentProfile.id) return true;
+        if (currentProfile && n.target === 'leaders' && (currentProfile.adminPost === 'President' || currentProfile.adminPost === 'Vice president')) return true;
+        return false;
+      });
+
+      const totalNotifs = recentPosts.length + userNotifs.length;
       
       const badge = document.getElementById('notifBadge');
       if (unreadNotifCount === 0 && totalNotifs > 0) {
@@ -1309,14 +1318,20 @@
 
     function renderDropdownNotifications() {
       const container = document.getElementById('notifDropdownList');
-      const noText = document.getElementById('noNotifDropdownText');
       if (!container) return;
 
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
       const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS).map(p => ({ title: p.title, content: p.content, timestamp: p.timestamp, type: 'post' }));
-      const recentPushNotifs = Object.values(notificationsList).filter(n => (Date.now() - n.timestamp) < ONE_WEEK_MS).map(n => ({ title: n.title, content: n.body, timestamp: n.timestamp, type: 'notif' }));
       
-      const allItems = [...recentPosts, ...recentPushNotifs];
+      const userNotifs = Object.values(notificationsList).filter(n => {
+        if ((Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
+        if (n.target === 'all') return true;
+        if (currentProfile && n.target === currentProfile.id) return true;
+        if (currentProfile && n.target === 'leaders' && (currentProfile.adminPost === 'President' || currentProfile.adminPost === 'Vice president')) return true;
+        return false;
+      }).map(n => ({ title: n.title, content: n.body, timestamp: n.timestamp, type: 'notif' }));
+      
+      const allItems = [...recentPosts, ...userNotifs];
       allItems.sort((a,b) => b.timestamp - a.timestamp);
 
       if (!allItems.length) {
@@ -1446,7 +1461,7 @@
       document.getElementById('suggestAnon').checked = false;
     });
 
-    /* GESTION DES PROJETS BDE */
+    /* GESTION DES PROJETS BDE AVEC NOTIFICATION PR & VICE-PR */
     function submitProject() {
       if (!currentProfile || currentProfile.role !== 'admin') return;
       const title = document.getElementById('projTitle').value.trim();
@@ -1466,20 +1481,35 @@
         return;
       }
 
+      const authorPostName = currentProfile.adminPost || 'Ministère';
+
+      // 1. Enregistrement du projet dans Firebase (Répertorié et visible par tous les admins)
       db.ref('projects').push({
         title,
         desc,
         month,
         authorId: currentProfile.id,
         authorName: currentProfile.name,
-        authorPost: currentProfile.adminPost || 'Ministère',
+        authorPost: authorPostName,
         status: 'En attente',
         timestamp: Date.now()
-      });
+      }, (error) => {
+        if (!error) {
+          // 2. Envoi automatique d'une notification ciblée au Président et au Vice-Président
+          db.ref('notifications').push({
+            title: "📋 Nouveau projet à valider",
+            body: `Le ministère de [${authorPostName}] (${currentProfile.name}) a soumis le projet : "${title}".`,
+            target: 'leaders', // Cible spécifique pour le Président et Vice-Président
+            timestamp: Date.now()
+          });
 
-      alert("Projet soumis avec succès ! En attente de validation.");
-      document.getElementById('projTitle').value = '';
-      document.getElementById('projDesc').value = '';
+          alert("Projet soumis avec succès ! Le Président et le Vice-Président ont été notifiés.");
+          document.getElementById('projTitle').value = '';
+          document.getElementById('projDesc').value = '';
+        } else {
+          alert("Erreur lors de la soumission : " + error.message);
+        }
+      });
     }
 
     function renderProjects() {
@@ -1502,11 +1532,12 @@
         let statusColor = p.status === 'Validé' ? '#27ae60' : (p.status === 'Rejeté' ? '#e74c3c' : '#e67e22');
         let actions = '';
 
+        // Boutons de validation visibles UNIQUEMENT pour le Président ou le Vice-Président
         if (currentProfile && (currentProfile.adminPost === 'President' || currentProfile.adminPost === 'Vice president')) {
           actions = `
-            <div style="margin-top:8px;">
-              <button class="btn-promote" onclick="updateProjectStatus('${key}', 'Validé')">✅ Valider</button>
-              <button class="btn-danger" onclick="updateProjectStatus('${key}', 'Rejeté')">❌ Rejeter</button>
+            <div style="margin-top:10px; display:flex; gap:8px;">
+              <button class="btn-promote" onclick="updateProjectStatus('${key}', 'Validé')" style="width:auto; padding:6px 12px; margin:0;">✅ Valider</button>
+              <button class="btn-danger" onclick="updateProjectStatus('${key}', 'Rejeté')" style="width:auto; padding:6px 12px; margin:0;">❌ Rejeter</button>
             </div>
           `;
         }
@@ -1526,7 +1557,11 @@
     }
 
     function updateProjectStatus(key, status) {
-      db.ref('projects/' + key).update({ status });
+      db.ref('projects/' + key).update({ status }, (error) => {
+        if (!error) {
+          alert(`Le projet a été marqué comme : ${status}`);
+        }
+      });
     }
 
     /* MESSAGERIE PRIVÉE (DM) */
@@ -1881,6 +1916,7 @@
       db.ref('notifications').push({
         title,
         body,
+        target: 'all',
         timestamp: Date.now()
       });
 
