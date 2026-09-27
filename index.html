@@ -914,8 +914,11 @@
     const logoutBtn = document.getElementById('logoutBtn');
 
     // Variable d'état globale pour suivre le mode d'authentification
-    let isRegisterMode = false;
+    // Si la variable n'a jamais été déclarée avant :
+let isRegisterMode = false;
 
+// OU, si elle existe déjà plus haut dans ton script, supprime la ligne ou réassigne-la simplement sans mot-clé :
+isRegisterMode = false;
     function toggleAuthMode(e) {
       if (e && typeof e.preventDefault === 'function') {
         e.preventDefault();
@@ -949,15 +952,23 @@
         if (toggleAuthLink) toggleAuthLink.innerText = "Créer un compte";
       }
     }
-    function handleAuthSubmit(e) {
-      e.preventDefault();
-      const email = document.getElementById('authUsername').value.trim();
-      const password = document.getElementById('authPassword').value.trim();
+   function handleAuthSubmit(e) {
+    if (e) e.preventDefault();
+    const email = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value.trim();
 
-      if (!email || !password) {
+    if (!email || !password) {
         alert("Veuillez remplir l'adresse e-mail et le mot de passe.");
         return;
-      }
+    }
+
+    // Suite de ton code pour gérer la connexion ou l'inscription (Firebase, etc.)
+    if (isRegisterMode) {
+        // Logique d'inscription
+    } else {
+        // Logique de connexion
+    }
+}
 
       if (isRegisterMode) {
         const name = document.getElementById('authName').value.trim();
