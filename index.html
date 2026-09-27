@@ -688,9 +688,14 @@
 
     const savedUser = localStorage.getItem('ehes_user');
     if (savedUser) {
-      currentProfile = JSON.parse(savedUser);
+      try {
+        currentProfile = JSON.parse(savedUser);
+      } catch(e) {
+        currentProfile = null;
+      }
     }
 
+    // Écouteurs en temps réel Firebase
     db.ref('users').on('value', (snapshot) => {
       usersList = snapshot.val() || {};
       loadAdminStats();
@@ -1033,6 +1038,8 @@
           drawerProjectsBtn.classList.remove('hidden');
           drawerDmBtn.classList.remove('hidden');
           renderDmContacts();
+          loadAdminStats();
+          renderAdminStudents();
         } else {
           adminNotice.classList.remove('hidden');
           adminPanel.classList.add('hidden');
@@ -1070,6 +1077,8 @@
       renderBiblio();
       renderSchedules();
       renderChat();
+      renderProjects();
+      updateNotifBadge();
     }
 
     function formatDriveLink(url) {
@@ -1270,7 +1279,7 @@
       });
     }
 
-    // Gestion centralisée et corrigée des notifications
+    // Gestion centralisée et ultra-robuste des notifications
     function toggleNotificationPanel() {
       const panel = document.getElementById('notifPanelDropdown');
       if (panel.style.display === 'none' || panel.style.display === '') {
@@ -1289,16 +1298,25 @@
       }
     });
 
+    function isLeader(user) {
+      if (!user) return false;
+      if (user.role === 'admin') {
+        if (!user.adminPost) return true;
+        const post = user.adminPost.toLowerCase().trim();
+        return post.includes('president') || post.includes('président') || post.includes('vice');
+      }
+      return false;
+    }
+
     function updateNotifBadge() {
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
       const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
       
-      // Filtrer les notifications destinées à l'utilisateur actuel (ou 'all' / PR / VP)
       const userNotifs = Object.values(notificationsList).filter(n => {
         if ((Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
         if (n.target === 'all') return true;
         if (currentProfile && n.target === currentProfile.id) return true;
-        if (currentProfile && n.target === 'leaders' && (currentProfile.adminPost === 'President' || currentProfile.adminPost === 'Vice president')) return true;
+        if (currentProfile && n.target === 'leaders' && isLeader(currentProfile)) return true;
         return false;
       });
 
@@ -1327,7 +1345,7 @@
         if ((Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
         if (n.target === 'all') return true;
         if (currentProfile && n.target === currentProfile.id) return true;
-        if (currentProfile && n.target === 'leaders' && (currentProfile.adminPost === 'President' || currentProfile.adminPost === 'Vice president')) return true;
+        if (currentProfile && n.target === 'leaders' && isLeader(currentProfile)) return true;
         return false;
       }).map(n => ({ title: n.title, content: n.body, timestamp: n.timestamp, type: 'notif' }));
       
@@ -1461,7 +1479,7 @@
       document.getElementById('suggestAnon').checked = false;
     });
 
-    /* GESTION DES PROJETS BDE AVEC NOTIFICATION PR & VICE-PR */
+    /* GESTION DES PROJETS BDE AVEC NOTIFICATION & BOUTONS PR / VICE-PR */
     function submitProject() {
       if (!currentProfile || currentProfile.role !== 'admin') return;
       const title = document.getElementById('projTitle').value.trim();
@@ -1483,7 +1501,6 @@
 
       const authorPostName = currentProfile.adminPost || 'Ministère';
 
-      // 1. Enregistrement du projet dans Firebase (Répertorié et visible par tous les admins)
       db.ref('projects').push({
         title,
         desc,
@@ -1495,11 +1512,10 @@
         timestamp: Date.now()
       }, (error) => {
         if (!error) {
-          // 2. Envoi automatique d'une notification ciblée au Président et au Vice-Président
           db.ref('notifications').push({
             title: "📋 Nouveau projet à valider",
             body: `Le ministère de [${authorPostName}] (${currentProfile.name}) a soumis le projet : "${title}".`,
-            target: 'leaders', // Cible spécifique pour le Président et Vice-Président
+            target: 'leaders',
             timestamp: Date.now()
           });
 
@@ -1532,8 +1548,7 @@
         let statusColor = p.status === 'Validé' ? '#27ae60' : (p.status === 'Rejeté' ? '#e74c3c' : '#e67e22');
         let actions = '';
 
-        // Boutons de validation visibles UNIQUEMENT pour le Président ou le Vice-Président
-        if (currentProfile && (currentProfile.adminPost === 'President' || currentProfile.adminPost === 'Vice president')) {
+        if (currentProfile && isLeader(currentProfile)) {
           actions = `
             <div style="margin-top:10px; display:flex; gap:8px;">
               <button class="btn-promote" onclick="updateProjectStatus('${key}', 'Validé')" style="width:auto; padding:6px 12px; margin:0;">✅ Valider</button>
@@ -1638,12 +1653,19 @@
 
     function loadAdminStats() {
       const usersArray = Object.values(usersList);
-      document.getElementById('statInscrits').innerText = usersArray.length;
+      const statInscritsEl = document.getElementById('statInscrits');
+      const statConnectesEl = document.getElementById('statConnectes');
       
-      const today = new Date().toISOString().split('T')[0];
-      const loginsArray = Object.values(loginsList);
-      const todayLogins = loginsArray.filter(l => l.date === today).length;
-      document.getElementById('statConnectes').innerText = todayLogins;
+      if (statInscritsEl) {
+        statInscritsEl.innerText = usersArray.length;
+      }
+      
+      if (statConnectesEl) {
+        const today = new Date().toISOString().split('T')[0];
+        const loginsArray = Object.values(loginsList);
+        const todayLogins = loginsArray.filter(l => l.date === today).length;
+        statConnectesEl.innerText = todayLogins;
+      }
     }
 
     function renderAdminReports() {
