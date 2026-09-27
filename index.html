@@ -1147,41 +1147,21 @@ function incrementDownload(category, itemKey) {
 
 
     function renderBiblio() {
-      const container = document.getElementById('biblioList');
-      if (!container) return;
-
-      const allBooks = Object.values(booksList);
-      const selectedMajor = document.getElementById('biblioFilterMajor').value;
-      const query = document.getElementById('searchBiblioInput').value.toLowerCase().trim();
-
-      let filteredBooks = allBooks;
-      if (selectedMajor !== 'ALL') {
-        filteredBooks = allBooks.filter(b => b.major === selectedMajor);
-      }
-
-      if (query) {
-        filteredBooks = filteredBooks.filter(b => b.title.toLowerCase().includes(query) || b.author.toLowerCase().includes(query));
-      }
-
-      if (!filteredBooks.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun ouvrage correspondant trouvé.</p>';
-        return;
-      }
-
-      let html = '';
       filteredBooks.forEach(b => {
-        const downloadUrl = formatDriveLink(b.url);
-        html += `
-          <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--primary); border-radius:8px;">
-            <strong>📖 ${b.title}</strong> <small style="color:var(--light-text);">par ${b.author}</small>
-            <div><span class="major-badge">${b.major}</span></div>
-            <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Accéder au livre</a>
-          </div>
-        `;
-      });
+  const downloadUrl = formatDriveLink(b.url);
+  const downloadCount = b.downloads || 0;
+  const bookKey = getObjectKey(booksList, b);
+  html += `
+    <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--primary); border-radius:8px;">
+      <strong>📖 ${b.title}</strong> <small style="color:var(--light-text);">par ${b.author}</small>
+      <div><span class="major-badge">${b.major}</span></div>
+      <a href="${downloadUrl}" class="drive-link" target="_blank" download onclick="incrementDownload('books', '${bookKey}')">
+        💾 Accéder au livre (${downloadCount})
+      </a>
+    </div>
+  `;
+});
 
-      container.innerHTML = html;
-    }
 
     function renderSchedules() {
       const schedContainer = document.getElementById('scheduleList');
