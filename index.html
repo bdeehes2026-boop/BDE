@@ -203,7 +203,21 @@
         <button onclick="scrollToAdminSection('secEtudiants')">Élèves</button>
       </div>
 
-      <button id="notifBtn" onclick="openNotifs()">🔔 <span id="notifBadge">0</span></button>
+      <!-- Bouton cloche des notifications avec panneau déroulant intégré -->
+      <div style="position: relative; display: inline-block;">
+        <button id="notifBtn" onclick="toggleNotificationPanel()">🔔 <span id="notifBadge">0</span></button>
+        
+        <div id="notifPanelDropdown" style="display: none; position: absolute; right: 0; top: 40px; width: 320px; max-height: 400px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; color: #2c3e50; text-align: left;">
+          <div style="padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color: var(--primary);">📢 Notifications</strong>
+            <button onclick="marquerToutCommeLu()" style="background: none; border: none; color: #3498db; cursor: pointer; font-size: 0.8rem; width: auto; padding: 0; margin: 0; box-shadow: none;">Tout marquer lu</button>
+          </div>
+          <div id="notifDropdownList" style="padding: 8px;">
+            <p id="noNotifDropdownText" style="text-align: center; color: var(--light-text); font-size: 0.85rem; padding: 15px 0; margin: 0;">Aucune notification pour le moment</p>
+          </div>
+        </div>
+      </div>
+
       <button id="profileBtn" onclick="openProfileModal()">👤 <span class="btn-label">Profil</span></button>
       <div id="userStatus">Visiteur</div>
     </div>
@@ -583,16 +597,6 @@
       <button id="logoutBtn" style="background-color: #666; width: auto; padding: 9px 22px; border-radius: 20px;">Se déconnecter du compte</button>
     </div>
 
-  </div>
-
-  <div id="notifModal" class="modal hidden">
-    <div class="modal-content">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3 style="margin:0;">📢 Dernières Notifications</h3>
-        <button onclick="closeNotifs()" style="width:auto; padding:3px 8px; margin:0;">✖</button>
-      </div>
-      <div id="notifList"></div>
-    </div>
   </div>
 
   <div id="profileModal" class="modal hidden">
@@ -1266,6 +1270,25 @@
       });
     }
 
+    // Gestion centralisée et corrigée des notifications
+    function toggleNotificationPanel() {
+      const panel = document.getElementById('notifPanelDropdown');
+      if (panel.style.display === 'none' || panel.style.display === '') {
+        panel.style.display = 'block';
+        renderDropdownNotifications();
+      } else {
+        panel.style.display = 'none';
+      }
+    }
+
+    window.addEventListener('click', function(e) {
+      const notifBtn = document.getElementById('notifBtn');
+      const panel = document.getElementById('notifPanelDropdown');
+      if (notifBtn && panel && !notifBtn.contains(e.target) && !panel.contains(e.target)) {
+        panel.style.display = 'none';
+      }
+    });
+
     function updateNotifBadge() {
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
       const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
@@ -1284,16 +1307,12 @@
       }
     }
 
-    function openNotifs() {
-      unreadNotifCount = 0;
-      const badge = document.getElementById('notifBadge');
-      badge.style.display = 'none';
-      badge.innerText = '0';
+    function renderDropdownNotifications() {
+      const container = document.getElementById('notifDropdownList');
+      const noText = document.getElementById('noNotifDropdownText');
+      if (!container) return;
 
-      const modal = document.getElementById('notifModal');
-      const list = document.getElementById('notifList');
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-      
       const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS).map(p => ({ title: p.title, content: p.content, timestamp: p.timestamp, type: 'post' }));
       const recentPushNotifs = Object.values(notificationsList).filter(n => (Date.now() - n.timestamp) < ONE_WEEK_MS).map(n => ({ title: n.title, content: n.body, timestamp: n.timestamp, type: 'notif' }));
       
@@ -1301,25 +1320,30 @@
       allItems.sort((a,b) => b.timestamp - a.timestamp);
 
       if (!allItems.length) {
-        list.innerHTML = '<p style="color:var(--light-text);">Aucune notification récente.</p>';
+        container.innerHTML = '<p id="noNotifDropdownText" style="text-align: center; color: var(--light-text); font-size: 0.85rem; padding: 15px 0; margin: 0;">Aucune notification pour le moment</p>';
       } else {
         let html = '';
         allItems.forEach(p => {
           const prefix = p.type === 'notif' ? '📲' : '📢';
+          const timeStr = new Date(p.timestamp).toLocaleDateString();
           html += `
-            <div style="padding:8px 0; border-bottom:1px solid #eee;">
-              <strong>${prefix} ${p.title}</strong>
-              <p style="margin:3px 0; font-size:0.85rem; color:#555;">${p.content}</p>
+            <div style="padding: 8px 0; border-bottom: 1px solid #eee; margin-bottom: 5px;">
+              <strong style="font-size: 0.85rem; color: var(--primary);">${prefix} ${p.title}</strong>
+              <p style="margin: 3px 0; font-size: 0.8rem; color: #555;">${p.content}</p>
+              <div style="font-size: 0.68rem; color: var(--light-text); text-align: right;">${timeStr}</div>
             </div>
           `;
         });
-        list.innerHTML = html;
+        container.innerHTML = html;
       }
-      modal.classList.remove('hidden');
     }
 
-    function closeNotifs() {
-      document.getElementById('notifModal').classList.add('hidden');
+    function marquerToutCommeLu() {
+      unreadNotifCount = 0;
+      const badge = document.getElementById('notifBadge');
+      badge.style.display = 'none';
+      badge.innerText = '0';
+      document.getElementById('notifPanelDropdown').style.display = 'none';
     }
 
     const chatForm = document.getElementById('chatForm');
