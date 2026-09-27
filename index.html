@@ -216,6 +216,8 @@
     <button class="tab-btn" onclick="switchTab('scheduleTab')">🗓️ Plannings</button>
     <button class="tab-btn" onclick="switchTab('chatTab')">💬 Forum</button>
     <button class="tab-btn" onclick="switchTab('suggestTab')">💡 Suggestions</button>
+    <button id="adminProjectsTabBtn" class="tab-btn hidden" onclick="switchTab('projectsTab')">📁 Projets BDE</button>
+    <button id="dmTabBtn" class="tab-btn hidden" onclick="switchTab('dmTab')">💌 Messages Privés</button>
   </nav>
 
   <div class="side-drawer-overlay" id="drawerOverlay" onclick="closeSideDrawer()"></div>
@@ -232,6 +234,8 @@
       <button onclick="navigateFromDrawer('scheduleTab')">🗓️ Plannings</button>
       <button onclick="navigateFromDrawer('chatTab')">💬 Forum Étudiant</button>
       <button onclick="navigateFromDrawer('suggestTab')">💡 Boîte à Suggestions</button>
+      <button id="drawerProjectsBtn" class="hidden" onclick="navigateFromDrawer('projectsTab')">📁 Projets BDE</button>
+      <button id="drawerDmBtn" class="hidden" onclick="navigateFromDrawer('dmTab')">💌 Messages Privés</button>
 
       <div id="drawerAdminSection" class="hidden">
         <div class="menu-divider"></div>
@@ -275,6 +279,22 @@
               <option value="M1">Master 1 (M1)</option>
               <option value="M2">Master 2 (M2)</option>
               <option value="Alumni">Alumni</option>
+            </select>
+          </div>
+
+          <div id="adminRoleFields" class="hidden" style="margin-top: 8px;">
+            <label style="font-weight:600; font-size:0.85rem; color:var(--primary); display:block;">Ministère / Poste occupé au BDE :</label>
+            <select id="authAdminPost">
+              <option value="President">President</option>
+              <option value="Vice president">Vice president</option>
+              <option value="Secretariat">Secretariat</option>
+              <option value="Santé et vie associative">Santé et vie associative</option>
+              <option value="Sport et culture">Sport et culture</option>
+              <option value="Sponsort et partenariat">Sponsort et partenariat</option>
+              <option value="Vie numerique">Vie numerique</option>
+              <option value="Vie academuque">Vie academuque</option>
+              <option value="Gestion des club">Gestion des club</option>
+              <option value="Tresoriere">Tresoriere</option>
             </select>
           </div>
 
@@ -378,6 +398,46 @@
         </label>
         <button type="submit" class="btn-gold" style="margin-top: 10px;">Envoyer au BDE</button>
       </form>
+    </div>
+
+    <!-- ONGLET PROJETS BDE (Réservé Admin) -->
+    <div id="projectsTab" class="tab-content card hidden">
+      <h2>📁 Gestion des Projets du BDE</h2>
+      <p style="color: var(--light-text); font-size: 0.88rem;">Chaque ministère peut soumettre jusqu'à 3 projets par mois. Validation requise par le Président ou le Vice-président.</p>
+      
+      <div style="margin: 15px 0; display: flex; gap: 10px; align-items: center;">
+        <label style="font-weight:600;">Filtrer par Mois :</label>
+        <input type="month" id="projectMonthFilter" onchange="renderProjects()" style="width: auto; margin:0;">
+      </div>
+
+      <div style="background:#fdfbf7; padding:15px; border-radius:8px; border:1px solid var(--secondary); margin-bottom:15px;">
+        <h3 style="font-size:1rem;">➕ Proposer un projet (Max 3 par mois)</h3>
+        <input type="text" id="projTitle" placeholder="Titre du projet">
+        <textarea id="projDesc" rows="3" placeholder="Description du projet..."></textarea>
+        <input type="month" id="projTargetMonth">
+        <button onclick="submitProject()" class="btn-gold">Soumettre le projet</button>
+      </div>
+
+      <div id="projectsList"></div>
+    </div>
+
+    <!-- ONGLET MESSAGERIE PRIVÉE (DM) (Réservé Admin) -->
+    <div id="dmTab" class="tab-content card hidden">
+      <h2>💌 Messages Privés & Confidentiels</h2>
+      <div style="display: flex; gap: 10px; height: 400px; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
+        <div style="width: 35%; border-right: 1px solid #eee; background: #fafafa; padding: 10px; overflow-y: auto;">
+          <h4>Contacts</h4>
+          <div id="dmContactsList"></div>
+        </div>
+        <div style="width: 65%; display: flex; flex-direction: column; background: #fff; padding: 10px;">
+          <div id="dmChatHeader" style="font-weight:600; border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:10px;">Sélectionnez un contact</div>
+          <div id="dmMessagesBox" style="flex: 1; overflow-y: auto; background: #fcfcfc; padding: 8px; border-radius: 6px; margin-bottom: 8px;"></div>
+          <form id="dmForm" onsubmit="sendDmMessage(event)" style="display: flex; gap: 5px; margin:0;">
+            <input type="text" id="dmInput" placeholder="Écrire un message secret..." style="margin:0;" required>
+            <button type="submit" style="width: auto; margin:0;">Envoyer</button>
+          </form>
+        </div>
+      </div>
     </div>
 
     <div id="adminTab" class="tab-content card hidden">
@@ -618,6 +678,9 @@
     let loginsList = {};
     let reportsList = {};
     let notificationsList = {};
+    let projectsList = {};
+    let dmMessagesList = {};
+    let activeDmUser = null;
 
     const savedUser = localStorage.getItem('ehes_user');
     if (savedUser) {
@@ -628,6 +691,7 @@
       usersList = snapshot.val() || {};
       loadAdminStats();
       renderAdminStudents();
+      renderDmContacts();
     });
 
     db.ref('posts').on('value', (snapshot) => {
@@ -679,6 +743,16 @@
     db.ref('logins').on('value', (snapshot) => {
       loginsList = snapshot.val() || {};
       loadAdminStats();
+    });
+
+    db.ref('projects').on('value', (snapshot) => {
+      projectsList = snapshot.val() || {};
+      renderProjects();
+    });
+
+    db.ref('dm_messages').on('value', (snapshot) => {
+      dmMessagesList = snapshot.val() || {};
+      if (activeDmUser) renderDmConversation(activeDmUser);
     });
 
     function toggleSideDrawer() {
@@ -746,13 +820,16 @@
     function toggleRoleFields() {
       const role = document.getElementById('authRole').value;
       const section = document.getElementById('studentMajorLevelSection');
+      const adminFields = document.getElementById('adminRoleFields');
       const codeInput = document.getElementById('authCode');
 
       if (role === 'admin') {
         section.classList.add('hidden');
+        adminFields.classList.remove('hidden');
         codeInput.placeholder = "Mot de passe d'activation Admin BDE";
       } else {
         section.classList.remove('hidden');
+        adminFields.classList.add('hidden');
         codeInput.placeholder = "Code d'activation étudiant (EHES2026)";
       }
     }
@@ -824,6 +901,7 @@
 
         const level = (role === 'admin') ? "ADMIN" : document.getElementById('authLevel').value;
         const major = (role === 'admin') ? "Administration BDE" : document.getElementById('authMajor').value;
+        const adminPost = (role === 'admin') ? document.getElementById('authAdminPost').value : null;
 
         if (role === 'student' && !major) {
           alert("Veuillez sélectionner votre filière.");
@@ -843,7 +921,8 @@
                 email: email,
                 level: level,
                 major: major,
-                role: role
+                role: role,
+                adminPost: adminPost
               };
 
               db.ref('users/' + userId).set(newUser, (error) => {
@@ -914,13 +993,21 @@
       const adminPanel = document.getElementById('adminPanel');
       const adminPcBar = document.getElementById('adminPcBar');
       const drawerAdminSection = document.getElementById('drawerAdminSection');
+      const adminProjectsTabBtn = document.getElementById('adminProjectsTabBtn');
+      const dmTabBtn = document.getElementById('dmTabBtn');
+      const drawerProjectsBtn = document.getElementById('drawerProjectsBtn');
+      const drawerDmBtn = document.getElementById('drawerDmBtn');
 
       if (currentProfile) {
         authSection.classList.add('hidden');
         logoutSection.classList.remove('hidden');
         document.getElementById('profileBtn').classList.remove('hidden');
 
-        const roleBadge = currentProfile.role === 'admin' ? '⚙️ Admin' : '👤 Étudiant';
+        let roleBadge = '👤 Étudiant';
+        if (currentProfile.role === 'admin') {
+          const postName = currentProfile.adminPost || 'Admin';
+          roleBadge = `⚙️ Admin [${postName}]`;
+        }
         userStatus.innerText = `${roleBadge} : ${currentProfile.name}`;
         welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
         userLevelDisplay.innerText = `${currentProfile.level} - ${currentProfile.major}`;
@@ -937,11 +1024,20 @@
           adminPanel.classList.remove('hidden');
           adminPcBar.classList.remove('hidden');
           drawerAdminSection.classList.remove('hidden');
+          adminProjectsTabBtn.classList.remove('hidden');
+          dmTabBtn.classList.remove('hidden');
+          drawerProjectsBtn.classList.remove('hidden');
+          drawerDmBtn.classList.remove('hidden');
+          renderDmContacts();
         } else {
           adminNotice.classList.remove('hidden');
           adminPanel.classList.add('hidden');
           adminPcBar.classList.add('hidden');
           drawerAdminSection.classList.add('hidden');
+          adminProjectsTabBtn.classList.add('hidden');
+          dmTabBtn.classList.add('hidden');
+          drawerProjectsBtn.classList.add('hidden');
+          drawerDmBtn.classList.add('hidden');
         }
 
       } else {
@@ -950,6 +1046,10 @@
         document.getElementById('profileBtn').classList.add('hidden');
         adminPcBar.classList.add('hidden');
         drawerAdminSection.classList.add('hidden');
+        adminProjectsTabBtn.classList.add('hidden');
+        dmTabBtn.classList.add('hidden');
+        drawerProjectsBtn.classList.add('hidden');
+        drawerDmBtn.classList.add('hidden');
         userStatus.innerText = "Visiteur";
         welcomeMsg.innerText = "Votre plateforme académique & vie étudiante";
         userLevelDisplay.innerText = "Non connecté";
@@ -1322,6 +1422,161 @@
       document.getElementById('suggestAnon').checked = false;
     });
 
+    /* GESTION DES PROJETS BDE */
+    function submitProject() {
+      if (!currentProfile || currentProfile.role !== 'admin') return;
+      const title = document.getElementById('projTitle').value.trim();
+      const desc = document.getElementById('projDesc').value.trim();
+      const month = document.getElementById('projTargetMonth').value;
+
+      if (!title || !desc || !month) {
+        alert("Veuillez remplir tous les champs du projet.");
+        return;
+      }
+
+      const allProjects = Object.values(projectsList);
+      const myProjectsThisMonth = allProjects.filter(p => p.authorId === currentProfile.id && p.month === month);
+      
+      if (myProjectsThisMonth.length >= 3) {
+        alert("⚠️ Votre ministère a déjà atteint la limite de 3 projets pour ce mois !");
+        return;
+      }
+
+      db.ref('projects').push({
+        title,
+        desc,
+        month,
+        authorId: currentProfile.id,
+        authorName: currentProfile.name,
+        authorPost: currentProfile.adminPost || 'Ministère',
+        status: 'En attente',
+        timestamp: Date.now()
+      });
+
+      alert("Projet soumis avec succès ! En attente de validation.");
+      document.getElementById('projTitle').value = '';
+      document.getElementById('projDesc').value = '';
+    }
+
+    function renderProjects() {
+      const container = document.getElementById('projectsList');
+      const filterMonth = document.getElementById('projectMonthFilter').value;
+      if (!container) return;
+
+      let arr = Object.entries(projectsList);
+      if (filterMonth) {
+        arr = arr.filter(([k, p]) => p.month === filterMonth);
+      }
+
+      if (!arr.length) {
+        container.innerHTML = '<p style="color:var(--light-text);">Aucun projet trouvé pour cette période.</p>';
+        return;
+      }
+
+      let html = '';
+      arr.forEach(([key, p]) => {
+        let statusColor = p.status === 'Validé' ? '#27ae60' : (p.status === 'Rejeté' ? '#e74c3c' : '#e67e22');
+        let actions = '';
+
+        if (currentProfile && (currentProfile.adminPost === 'President' || currentProfile.adminPost === 'Vice president')) {
+          actions = `
+            <div style="margin-top:8px;">
+              <button class="btn-promote" onclick="updateProjectStatus('${key}', 'Validé')">✅ Valider</button>
+              <button class="btn-danger" onclick="updateProjectStatus('${key}', 'Rejeté')">❌ Rejeter</button>
+            </div>
+          `;
+        }
+
+        html += `
+          <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid ${statusColor}; border-radius:8px;">
+            <strong>${p.title}</strong> <small style="color:var(--light-text);">(${p.month})</small><br>
+            <small>Ministère : <strong>${p.authorName}</strong> (${p.authorPost})</small>
+            <p style="margin:5px 0;">${p.desc}</p>
+            <div>Statut : <span style="font-weight:600; color:${statusColor};">${p.status}</span></div>
+            ${actions}
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function updateProjectStatus(key, status) {
+      db.ref('projects/' + key).update({ status });
+    }
+
+    /* MESSAGERIE PRIVÉE (DM) */
+    function renderDmContacts() {
+      const container = document.getElementById('dmContactsList');
+      if (!container || !currentProfile || currentProfile.role !== 'admin') return;
+
+      let html = '';
+      for (let id in usersList) {
+        if (id === currentProfile.id) continue;
+        const u = usersList[id];
+        if (u.role === 'admin') {
+          let badge = ` <span style="background:var(--secondary); color:#2c3e50; font-size:0.65rem; padding:1px 5px; border-radius:4px;">⚙️ ${u.adminPost || 'Admin'}</span>`;
+          html += `
+            <div onclick="selectDmUser('${id}', '${u.name}')" style="padding:8px; cursor:pointer; border-bottom:1px solid #eee; border-radius:4px; margin-bottom:4px; background:#fff;">
+              👤 <strong>${u.name}</strong>${badge}
+            </div>
+          `;
+        }
+      }
+      container.innerHTML = html || '<p style="font-size:0.8rem; color:var(--light-text);">Aucun autre administrateur.</p>';
+    }
+
+    function selectDmUser(userId, userName) {
+      activeDmUser = userId;
+      document.getElementById('dmChatHeader').innerText = `Discussion privée avec ${userName}`;
+      renderDmConversation(userId);
+    }
+
+    function renderDmConversation(otherUserId) {
+      const box = document.getElementById('dmMessagesBox');
+      if (!box || !currentProfile) return;
+
+      const msgs = Object.values(dmMessagesList);
+      const filtered = msgs.filter(m => (m.sender === currentProfile.id && m.receiver === otherUserId) || (m.sender === otherUserId && m.receiver === currentProfile.id));
+      filtered.sort((a,b) => a.timestamp - b.timestamp);
+
+      let html = '';
+      filtered.forEach(m => {
+        let isMe = m.sender === currentProfile.id;
+        let bg = isMe ? '#d1e7dd' : '#f8d7da';
+        let align = isMe ? 'text-align:right;' : 'text-align:left;';
+        html += `
+          <div style="margin-bottom:6px; ${align}">
+            <div style="display:inline-block; background:${bg}; padding:6px 10px; border-radius:8px; font-size:0.85rem; max-width:80%; text-align:left;">
+              ${m.text}
+            </div>
+          </div>
+        `;
+      });
+      box.innerHTML = html || '<p style="color:var(--light-text); font-size:0.8rem; text-align:center;">Envoyez votre premier message confidentiel.</p>';
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendDmMessage(e) {
+      e.preventDefault();
+      if (!currentProfile || !activeDmUser) {
+        alert("Veuillez sélectionner un contact dans la liste.");
+        return;
+      }
+      const input = document.getElementById('dmInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      db.ref('dm_messages').push({
+        sender: currentProfile.id,
+        receiver: activeDmUser,
+        text,
+        timestamp: Date.now()
+      });
+
+      input.value = '';
+    }
+
     function loadAdminStats() {
       const usersArray = Object.values(usersList);
       document.getElementById('statInscrits').innerText = usersArray.length;
@@ -1390,10 +1645,11 @@
           html += `<div class="level-title">${title} (${list.length})</div>`;
           list.forEach(([key, st]) => {
             const majorText = st.major ? `<span class="major-badge">${st.major}</span>` : '';
+            const adminPostText = st.adminPost ? ` <span style="background:var(--secondary); color:#2c3e50; font-size:0.7rem; padding:1px 6px; border-radius:4px;">[${st.adminPost}]</span>` : '';
             const promoteBtn = st.role !== 'admin' && st.level !== 'Alumni' ? `<button class="btn-promote" onclick="promoteStudentLevel('${key}')">🎓 Passage Supérieur</button>` : '';
             html += `
               <div class="student-item">
-                <span>👤 <strong>${st.name}</strong> (@${st.username}) ${majorText}</span>
+                <span>👤 <strong>${st.name}</strong>${adminPostText} (@${st.username}) ${majorText}</span>
                 <div>
                   ${promoteBtn}
                   <button class="btn-danger" style="margin:0;" onclick="deleteStudent('${key}')">🗑️ Supprimer</button>
