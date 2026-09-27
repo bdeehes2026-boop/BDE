@@ -1118,58 +1118,19 @@
     });
 
     function renderCourses() {
-      if (!currentProfile) {
-        coursesContainer.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
-        return;
-      }
-      
-      const allCourses = Object.values(coursesList);
-      const selectedMajor = document.getElementById('filterMajor').value;
-      const query = document.getElementById('searchCourseInput').value.toLowerCase().trim();
+  grouped[major].forEach(c => {
+  const downloadUrl = formatDriveLink(c.url);
+  const downloadCount = c.downloads || 0; // Récupère le nombre de téléchargements
+  html += `
+    <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px;">
+      <strong>${c.title}</strong><br>
+      <a href="${downloadUrl}" class="drive-link" target="_blank" download onclick="incrementDownload('courses', '${c.key || getObjectKey(coursesList, c)}')">
+        💾 Télécharger le document (${downloadCount})
+      </a>
+    </div>
+  `;
+});
 
-      let userCourses = allCourses;
-      if (currentProfile.role !== 'admin') {
-        userCourses = allCourses.filter(c => c.level === currentProfile.level);
-      }
-
-      if (selectedMajor !== 'ALL') {
-        userCourses = userCourses.filter(c => c.major === selectedMajor);
-      }
-
-      if (query) {
-        userCourses = userCourses.filter(c => c.title.toLowerCase().includes(query));
-      }
-
-      if (!userCourses.length) {
-        coursesContainer.innerHTML = '<p style="color:var(--light-text);">Aucun cours correspondant trouvé.</p>';
-        return;
-      }
-
-      const grouped = {};
-      userCourses.forEach(c => {
-        const majorKey = c.major || "Général";
-        if (!grouped[majorKey]) grouped[majorKey] = [];
-        grouped[majorKey].push(c);
-      });
-
-      let html = '';
-      for (let major in grouped) {
-        html += `<div class="level-group">`;
-        html += `<div class="level-title">📂 ${major}</div>`;
-        grouped[major].forEach(c => {
-          const downloadUrl = formatDriveLink(c.url);
-          html += `
-            <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px;">
-              <strong>${c.title}</strong><br>
-              <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Télécharger le document</a>
-            </div>
-          `;
-        });
-        html += `</div>`;
-      }
-
-      coursesContainer.innerHTML = html;
-    }
 
     function renderBiblio() {
       const container = document.getElementById('biblioList');
