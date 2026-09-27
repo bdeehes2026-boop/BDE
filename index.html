@@ -631,6 +631,20 @@
   </div>
 
   <script>
+    // Fonction pour retrouver la clé Firebase d'un objet si elle n'est pas passée directement
+function getObjectKey(obj, targetVal) {
+  return Object.keys(obj).find(key => obj[key] === targetVal);
+}
+
+// Fonction pour incrémenter le compteur dans Firebase
+function incrementDownload(category, itemKey) {
+  if (!itemKey) return;
+  const ref = db.ref(`${category}/${itemKey}/downloads`);
+  ref.transaction(currentCount => {
+    return (currentCount || 0) + 1;
+  });
+}
+
     const STUDENT_SECRET_CODE = "EHES2026";
     const ADMIN_SECRET_CODE = "Bde2026"; 
 
