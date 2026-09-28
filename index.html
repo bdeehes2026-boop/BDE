@@ -2488,3 +2488,17 @@ Pour que le bouton de suppression de la suggestion fonctionne directement :
     }
 
     checkUserSession();
+// Écouteur pour le formulaire d'authentification
+document.addEventListener('DOMContentLoaded', function() {
+  const authForm = document.getElementById('authForm');
+  if (authForm) {
+    authForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      if (typeof handleAuthSubmit === 'function') {
+        handleAuthSubmit(event);
+      } else {
+        console.error("La fonction handleAuthSubmit n'est pas trouvée.");
+      }
+    });
+  }
+});
