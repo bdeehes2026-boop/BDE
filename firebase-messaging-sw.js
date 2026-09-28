@@ -46,4 +46,32 @@ messaging.onBackgroundMessage((payload) => {
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
+// Importation des scripts Firebase (Version 8 compat)
+importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js');
 
+// Initialisation de Firebase dans le Service Worker
+// (Remplace par tes propres identifiants de configuration Firebase)
+firebase.initializeApp({
+  apiKey: "TA_API_KEY",
+  authDomain: "TON_AUTH_DOMAIN",
+  projectId: "TON_PROJECT_ID",
+  storageBucket: "TON_STORAGE_BUCKET",
+  messagingSenderId: "TON_MESSAGING_SENDER_ID",
+  appId: "TON_APP_ID"
+});
+
+const messaging = firebase.messaging();
+
+// Gestion des notifications reçues en arrière-plan (quand l'app est fermée)
+messaging.onBackgroundMessage((payload) => {
+  console.log('[firebase-messaging-sw.js] Message reçu en arrière-plan ', payload);
+
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: '/icon-192.png' // Assure-toi d'avoir une icône ou retire cette ligne
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
