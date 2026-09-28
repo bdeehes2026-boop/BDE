@@ -4,11 +4,7 @@ const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-  'https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js',
-  'https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js'
+
 ];
 
 // Installation : Mise en cache des fichiers essentiels
