@@ -2502,3 +2502,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+// Déclaration globale de toutes les fonctions de l'interface pour éviter les "not defined"
+window.toggleSideDrawer = window.toggleSideDrawer || function() { console.warn("toggleSideDrawer non chargé"); };
+window.toggleNotificationPanel = window.toggleNotificationPanel || function() { console.warn("toggleNotificationPanel non chargé"); };
+window.openProfileModal = window.openProfileModal || function() { console.warn("openProfileModal non chargé"); };
+window.toggleAuthMode = window.toggleAuthMode || function() { console.warn("toggleAuthMode non chargé"); };
