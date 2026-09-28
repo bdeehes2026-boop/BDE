@@ -1731,9 +1731,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         });
       }
     }
-    // Variable globale pour stocker les messages
-let messagesList = {};
-
+   
 // Écoute en temps réel sur la base de données Firebase
 db.ref('messages').on('value', (snapshot) => {
   messagesList = snapshot.val() || {};
