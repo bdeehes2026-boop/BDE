@@ -1149,15 +1149,15 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     if (logoutSection) logoutSection.classList.remove('hidden');
     if (profileBtn) profileBtn.classList.remove('hidden');
 
-    let roleBadge = '👤 Étudiant';
-    if (currentProfile.role === 'admin') {
-      const postName = currentProfile.adminPost || 'Admin';
-      roleBadge = `⚙️ Admin [${postName}]`;
-    }
+   let roleBadge = '👤 Étudiant';
+        if (currentProfile.role === 'admin') {
+          const postName = currentProfile.adminPost || 'Admin';
+          roleBadge = `⚙️ Admin [${postName}]`;
+        }
 
-        if (userstatus) userStatus.innerText = `\({roleBadge} :\){currentProfile.name}`;
+        if (userStatus) userStatus.innerText = `\({roleBadge} :\){currentProfile.name}`;
         if (welcomeMsg) welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
-        if (userLevelDisplay) userLevelDisplay.innerText = `\({currentProfile.level || ''} -\){currentProfile.major || ''}`;
+        if (userLevelDisplay) userLevelDisplay.innerText = `\({currentProfile.level \vert{}\vert{} ''} -\){currentProfile.major || ''}`;
     // Pré-filtrer les cours selon la filière de l'étudiant
     if (filterMajor && currentProfile.role !== 'admin') {
       filterMajor.value = currentProfile.major;
