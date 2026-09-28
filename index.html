@@ -589,7 +589,61 @@
       </div>
     </div>
   </div>
-       
+      <div id="secSuggestions">
+    <h3>💡 Suggestions reçues</h3>
+    <div class="suggestion-box" id="adminSuggestionsList"></div>
+  </div>
+
+  <div id="logoutSection" class="hidden" style="text-align: center; margin-top: 25px;">
+    <button id="logoutBtn" style="background-color: #6c757d; color: white; border: none; font-weight: 500; cursor: pointer; width: auto; padding: 10px 24px; border-radius: 25px; transition: background-color 0.2s ease;">Se déconnecter du compte</button>
+  </div>
+
+</div>
+
+<!-- Modal Profil Amélioré -->
+<div id="profileModal" class="modal hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(2px);">
+  <div class="modal-content" style="background: #fff; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); animation: modalFadeIn 0.3s ease;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid #eaeaea; padding-bottom: 10px;">
+      <h3 style="margin: 0; font-size: 1.2rem; color: #2c3e50;">👤 Mon Profil</h3>
+      <button onclick="closeProfileModal()" style="background: #f1f2f6; border: none; color: #333; font-weight: bold; cursor: pointer; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">✕</button>
+    </div>
+
+    <form id="profileForm" style="display: flex; flex-direction: column; gap: 12px;">
+      <div>
+        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #4b6584; margin-bottom: 4px;">Nom et Prénom :</label>
+        <input type="text" id="profileName" style="width: 100%; padding: 10px; border: 1px solid #dcdde1; border-radius: 6px; font-size: 0.9rem; outline: none;">
+      </div>
+      
+      <div id="profileStudentOnly" style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #4b6584; margin-bottom: 4px;">Filière :</label>
+          <select id="profileMajor" style="width: 100%; padding: 10px; border: 1px solid #dcdde1; border-radius: 6px; font-size: 0.9rem; background: #fff; outline: none;">
+            <option value="Pétrole et Gaz">Pétrole et Gaz</option>
+            <option value="Génie Civil">Génie Civil</option>
+            <option value="Gestion des Entreprises">Gestion des Entreprises</option>
+            <option value="Transport & Logistique">Transport & Logistique</option>
+          </select>
+        </div>
+
+        <div>
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #4b6584; margin-bottom: 4px;">Niveau :</label>
+          <select id="profileLevel" style="width: 100%; padding: 10px; border: 1px solid #dcdde1; border-radius: 6px; font-size: 0.9rem; background: #fff; outline: none;">
+            <option value="L1">Licence 1 (L1)</option>
+            <option value="L2">Licence 2 (L2)</option>
+            <option value="L3">Licence 3 (L3)</option>
+            <option value="M1">Master 1 (M1)</option>
+            <option value="M2">Master 2 (M2)</option>
+            <option value="Alumni">Alumni</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-gold" style="margin-top: 10px; padding: 12px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; width: 100%;">Enregistrer les modifications</button>
+    </form>
+  </div>
+</div>
+ 
   <script>
     const STUDENT_SECRET_CODE = "EHES2026";
     const ADMIN_SECRET_CODE = "Bde2026"; 
