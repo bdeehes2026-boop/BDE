@@ -330,42 +330,7 @@
         <a href="#" id="toggleAuthLink" onclick="toggleAuthMode(event)" style="color: var(--primary); font-weight: 600; text-decoration: none;">Créer un compte</a>
       </p>
     </div>
-function initPushNotifications() {
-    // Vérifier si le navigateur supporte les notifications et le messaging
-    if (!firebase.messaging.isSupported()) {
-        console.log("Les notifications push ne sont pas supportées sur ce navigateur.");
-        return;
-    }
 
-    const messaging = firebase.messaging();
-
-    // Demander la permission à l'utilisateur
-    messaging.requestPermission()
-        .then(() => {
-            console.log("Permission de notification accordée !");
-            // Récupérer le token unique de l'appareil
-            return messaging.getToken();
-        })
-        .then((token) => {
-            console.log("FCM Token généré :", token);
-            
-            // Sauvegarder ce token dans la base de données Firebase sous l'utilisateur connecté
-            if (currentProfile && currentProfile.id) {
-                db.ref('users/' + currentProfile.id + '/fcmToken').set(token);
-            }
-        })
-        .catch((err) => {
-            console.warn("Impossible d'obtenir la permission ou le token de notification :", err);
-        });
-
-    // Écouter les messages reçus lorsque le site est OUVERT au premier plan
-    messaging.onMessage((payload) => {
-        console.log("Message reçu en premier plan : ", payload);
-        if (payload.notification) {
-            alert(`📢 ${payload.notification.title}\n${payload.notification.body}`);
-        }
-    });
-}
     <div id="homeTab" class="tab-content">
       <div class="hero-banner">
         <h2>Bienvenue sur le Portail BDE EHES</h2>
@@ -1109,12 +1074,23 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
               };
 
               localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
-              
+              db.ref('users/' + authUser.uid).once('value', (snapshot) => {
+  const profileData = snapshot.val();
+  currentProfile = profileData || { ... };
+
+  localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
+  
+  // 🚀 C'est ici qu'il faut appeler l'initialisation des notifications !
+  initPushNotifications();
+  
+  alert("Connexion réussie ! Bienvenue " + currentProfile.name);
+  if (typeof switchTab === 'function') switchTab('homeTab');
+});
               if (typeof registerLogin === 'function') registerLogin();
               if (typeof checkUserSession === 'function') checkUserSession();
               
               alert("Connexion réussie ! Bienvenue " + currentProfile.name);
-              initPushNotification(); 
+ 
               if (typeof switchTab === 'function') switchTab('homeTab');
               if (typeof updateUI === 'function') updateUI();
             });
@@ -1124,6 +1100,41 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
           });
       }
     }
+    function initPushNotifications() {
+    // Vérifier si le navigateur supporte les notifications et le messaging
+    if (!firebase.messaging.isSupported()) {
+        console.log("Les notifications push ne sont pas supportées sur ce navigateur.");
+        return;
+    }
+
+    const messaging = firebase.messaging();
+
+    // Demander la permission à l'utilisateur
+    messaging.requestPermission()
+        .then(() => {
+            console.log("Permission de notification accordée !");
+            return messaging.getToken();
+        })
+        .then((token) => {
+            console.log("FCM Token généré :", token);
+            
+            // Sauvegarder ce token dans la base de données Firebase sous l'utilisateur connecté
+            if (currentProfile && currentProfile.id) {
+                db.ref('users/' + currentProfile.id + '/fcmToken').set(token);
+            }
+        })
+        .catch((err) => {
+            console.warn("Impossible d'obtenir la permission ou le token de notification :", err);
+        });
+
+    // Écouter les messages reçus lorsque le site est OUVERT au premier plan
+    messaging.onMessage((payload) => {
+        console.log("Message reçu en premier plan : ", payload);
+        if (payload.notification) {
+            alert(`📢 \({payload.notification.title}\n\){payload.notification.body}`);
+        }
+    });
+}
    function registerLogin() {
       if (!currentProfile) return;
       
