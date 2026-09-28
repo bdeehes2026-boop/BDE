@@ -1288,6 +1288,64 @@ function renderCourses() {
         coursesContainer.innerHTML = `Aucun cours trouvé pour vos critères.';
         return;
 }
+// Fonction de gestion de la connexion et de l'inscription
+async function handleAuthSubmit(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('authUsername').value.trim();
+    const password = document.getElementById('authPassword').value.trim();
+    const isRegistering = !document.getElementById('registerFields').classList.contains('hidden');
+
+    try {
+        if (isRegistering) {
+            const name = document.getElementById('authName').value.trim();
+            const role = document.getElementById('authRole').value;
+            const major = document.getElementById('authMajor').value;
+            const level = document.getElementById('authLevel').value;
+            const adminPost = document.getElementById('authAdminPost').value;
+            const code = document.getElementById('authCode').value.trim();
+
+            // Vérification des codes d'activation
+            if (role === 'admin' && code !== 'Mot de passe BDE') {
+                alert('Code d\'activation Administrateur incorrect.');
+                return;
+            }
+            if (role === 'student' && code !== 'EHES2026') {
+                alert('Code d\'activation Étudiant incorrect (Utilisez EHES2026).');
+                return;
+            }
+
+            // Inscription Firebase Auth
+            const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+
+            // Enregistrement des données supplémentaires dans Realtime Database
+            const userData = {
+                name: name,
+                email: email,
+                role: role,
+                major: role === 'student' ? major : 'Administration',
+                level: role === 'student' ? level : 'Admin',
+                adminPost: role === 'admin' ? adminPost : '',
+                createdAt: Date.now()
+            };
+
+            await firebase.database().ref('users/' + user.uid).set(userData);
+            alert('Compte créé avec succès ! Bienvenue sur le portail.');
+        } else {
+            // Connexion Firebase Auth
+            await firebase.auth().signInWithEmailAndPassword(email, password);
+            alert('Connexion réussie !');
+        }
+
+        // Réinitialisation du formulaire et mise à jour de l'interface
+        document.getElementById('authForm').reset();
+        checkUserSession();
+    } catch (error) {
+        console.error("Erreur d'authentification :", error);
+        alert('Erreur : ' + error.message);
+    }
+}
     function renderBiblio() {
     const container = document.getElementById('biblioList');
     if (!container) return;
