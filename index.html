@@ -2607,7 +2607,43 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
           .catch((err) => console.error('Erreur PWA lors de l\'enregistrement :', err));
       });
     }
+document.addEventListener('DOMContentLoaded', () => {
+  console.log("🚀 Initialisation de l'application BDE EHES...");
 
+  // 1. Vérification de la session utilisateur au démarrage
+  if (typeof checkUserSession === 'function') {
+    checkUserSession();
+  }
+
+  // 2. Chargement initial des données depuis Firebase (si les fonctions existent)
+  if (typeof loadAdminStats === 'function') loadAdminStats();
+  if (typeof renderAdminStudents === 'function') renderAdminStudents();
+  if (typeof renderAdminReports === 'function') renderAdminReports();
+  if (typeof renderAdminSuggestions === 'function') renderAdminSuggestions();
+  if (typeof renderAdminCoursesManage === 'function') renderAdminCoursesManage();
+  if (typeof renderAdminPostsManage === 'function') renderAdminPostsManage();
+  if (typeof renderAdminBooksManage === 'function') renderAdminBooksManage();
+  if (typeof renderAdminSchedulesManage === 'function') renderAdminSchedulesManage();
+  if (typeof renderDmContacts === 'function') renderDmContacts();
+
+  // 3. Écouteurs pour la navigation / Changement d'onglets (si tu as des boutons de menu)
+  // Exemple : document.querySelectorAll('.nav-link').forEach(link => ...);
+
+  // 4. Écouteur pour l'envoi de messages privés dans le chat admin
+  const dmForm = document.getElementById('dmForm') || document.getElementById('dmChatForm');
+  if (dmForm && typeof sendDmMessage === 'function') {
+    dmForm.addEventListener('submit', sendDmMessage);
+  }
+
+  // 5. Écouteurs de soumission / publication (déjà gérés en partie dans tes fonctions, 
+  // mais on s'assure ici que les boutons déclenchent bien les actions si ce n'est pas fait)
+  
+  // Note : Tes boutons 'sendGlobalNotifBtn', 'publishPostBtn', 'publishCourseBtn', 
+  // 'publishBookBtn', et 'publishSchedBtn' écoutent déjà le clic grâce aux addEventListener 
+  // que tu as définis dans tes blocs précédents !
+
+  console.log("✅ Écouteurs et initialisation en place avec succès !");
+});
    document.addEventListener('DOMContentLoaded', () => {
   console.log("🚀 Initialisation de l'application BDE EHES...");
 
