@@ -10,12 +10,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-  // Déclaration globale immédiate pour éviter le ReferenceError
-window.handleAuthSubmit = async function(event) {
-    event.preventDefault();
-    // (mets ici tout le code de ta fonction handleAuthSubmit qu'on a vu juste avant)
-};
-
+window.handleAuthSubmit = function(e) { if(typeof handleAuthSubmit === 'function' && handleAuthSubmit !== arguments.callee) { return handleAuthSubmit(e); } };
   <link rel="manifest" href="./manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
