@@ -1731,6 +1731,14 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         });
       }
     }
+    // Écouter les messages de Firebase en temps réel
+db.ref('messages').on('value', (snapshot) => {
+  // On met à jour la liste globale des messages
+  window.messagesList = snapshot.val() || {};
+  
+  // On appelle la fonction pour rafraîchir l'affichage à chaque modification
+  renderChat();
+});
 
     function deleteChatMessage(msgKey) {
       if (confirm("Voulez-vous vraiment supprimer ce message du forum ?")) {
