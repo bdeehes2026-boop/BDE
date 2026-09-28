@@ -1155,10 +1155,9 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       roleBadge = `⚙️ Admin [${postName}]`;
     }
 
-    if (userStatus) userStatus.innerText = `\({roleBadge} :\){currentProfile.name}`;
-    if (welcomeMsg) welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
-    if (userLevelDisplay) userLevelDisplay.innerText = `\({currentProfile.level || ''} -\){currentProfile.major || ''}`;
-
+        if (userstatus) userStatus.innerText = `\({roleBadge} :\){currentProfile.name}`;
+        if (welcomeMsg) welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
+        if (userLevelDisplay) userLevelDisplay.innerText = `\({currentProfile.level || ''} -\){currentProfile.major || ''}`;
     // Pré-filtrer les cours selon la filière de l'étudiant
     if (filterMajor && currentProfile.role !== 'admin') {
       filterMajor.value = currentProfile.major;
