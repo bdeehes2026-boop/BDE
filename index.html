@@ -1314,8 +1314,20 @@ function renderCourses() {
     filteredBooks.forEach(b => {
         const downloadUrl = formatDriveLink(b.url);
         html += `
+            let html = '';
+    filteredBooks.forEach(b => {
+        const downloadUrl = formatDriveLink(b.url);
+        html += `
           <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--primary); border-radius:8px;">
             <strong>📖 ${b.title}</strong> <small style="color:var(--light-text);">par ${b.author}</small>
+            <div><span class="major-badge">${b.major}</span></div>
+            <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Accéder au livre</a>
+          </div>
+        `;
+    });
+
+    container.innerHTML = html;
+
             <div><span class="major-badge">${b.major}</span></div>
             <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Accéder au livre</a>
           </div>
