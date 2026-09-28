@@ -1040,14 +1040,9 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
           });
 
       } else {
-        // Mode Connexion
-        } else {
-        // Mode Connexion
+        // Mode Connexion propre
         console.log("Envoi à Firebase - Email:", email, "Mot de passe length:", password.length);
         
-        firebase.auth().signInWithEmailAndPassword(email, password)
-          .then((userCredential) => {
-            // ... reste du code
         firebase.auth().signInWithEmailAndPassword(email, password)
           .then((userCredential) => {
             const authUser = userCredential.user;
@@ -1075,13 +1070,11 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
               localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
               
-              // Sécurisation des appels de fonctions annexes s'ils existent dans ton script
               if (typeof registerLogin === 'function') registerLogin();
               if (typeof checkUserSession === 'function') checkUserSession();
               
               alert("Connexion réussie ! Bienvenue " + currentProfile.name);
               
-              // Redirection vers l'accueil après connexion réussie
               if (typeof switchTab === 'function') switchTab('homeTab');
               if (typeof updateUI === 'function') updateUI();
             });
