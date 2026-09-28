@@ -1124,100 +1124,100 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       });
     }
 
-    function checkUserSession() {
-      // Récupération sécurisée des éléments clés de l'interface
-      const adminNotice = document.getElementById('adminNotice');
-      const adminPanel = document.getElementById('adminPanel');
-      const adminPcBar = document.getElementById('adminPcBar');
-      const drawerAdminSection = document.getElementById('drawerAdminSection');
-      const adminProjectsTabBtn = document.getElementById('adminProjectsTabBtn');
-      const dmTabBtn = document.getElementById('dmTabBtn');
-      const drawerProjectsBtn = document.getElementById('drawerProjectsBtn');
-      const drawerDmBtn = document.getElementById('drawerDmBtn');
-      const authSection = document.getElementById('authSection');
-      const logoutSection = document.getElementById('logoutSection');
-      const profileBtn = document.getElementById('profileBtn');
-      const userStatus = document.getElementById('userStatus');
-      const welcomeMsg = document.getElementById('welcomeMsg');
-      const userLevelDisplay = document.getElementById('userLevelDisplay');
-      const chatContainer = document.getElementById('chatContainer');
-      const chatGuestWarning = document.getElementById('chatGuestWarning');
-      const filterMajor = document.getElementById('filterMajor');
+   function checkUserSession() {
+  // Récupération sécurisée des éléments clés de l'interface
+  const adminNotice = document.getElementById('adminNotice');
+  const adminPanel = document.getElementById('adminPanel');
+  const adminPcBar = document.getElementById('adminPcBar');
+  const drawerAdminSection = document.getElementById('drawerAdminSection');
+  const adminProjectsTabBtn = document.getElementById('adminProjectsTabBtn');
+  const dmTabBtn = document.getElementById('dmTabBtn');
+  const drawerProjectsBtn = document.getElementById('drawerProjectsBtn');
+  const drawerDmBtn = document.getElementById('drawerDmBtn');
+  const authSection = document.getElementById('authSection');
+  const logoutSection = document.getElementById('logoutSection');
+  const profileBtn = document.getElementById('profileBtn');
+  const userStatus = document.getElementById('userStatus');
+  const welcomeMsg = document.getElementById('welcomeMsg');
+  const userLevelDisplay = document.getElementById('userLevelDisplay');
+  const chatContainer = document.getElementById('chatContainer');
+  const chatGuestWarning = document.getElementById('chatGuestWarning');
+  const filterMajor = document.getElementById('filterMajor');
 
-      if (currentProfile) {
-        if (authSection) authSection.classList.add('hidden');
-        if (logoutSection) logoutSection.classList.remove('hidden');
-        if (profileBtn) profileBtn.classList.remove('hidden');
+  if (currentProfile) {
+    if (authSection) authSection.classList.add('hidden');
+    if (logoutSection) logoutSection.classList.remove('hidden');
+    if (profileBtn) profileBtn.classList.remove('hidden');
 
-        let roleBadge = '👤 Étudiant';
-        if (currentProfile.role === 'admin') {
-          const postName = currentProfile.adminPost || 'Admin';
-          roleBadge = `⚙️ Admin [${postName}]`;
-        }
-
-        if (userStatus) userStatus.innerText = `\({roleBadge} :\){currentProfile.name}`;
-        if (welcomeMsg) welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
-        if (userLevelDisplay) userLevelDisplay.innerText = `\({currentProfile.level || ''} -\){currentProfile.major || ''}`;
-
-        // Pré-filtrer les cours selon la filière de l'étudiant
-        if (filterMajor && currentProfile.role !== 'admin') {
-          filterMajor.value = currentProfile.major;
-        }
-
-        if (chatContainer) chatContainer.classList.remove('hidden');
-        if (chatGuestWarning) chatGuestWarning.classList.add('hidden');
-
-        // Gestion des affichages spécifiques Admin vs Étudiant
-        const isAdmin = (currentProfile.role === 'admin');
-
-        if (adminNotice) adminNotice.classList.toggle('hidden', isAdmin);
-        if (adminPanel) adminPanel.classList.toggle('hidden', !isAdmin);
-        if (adminPcBar) adminPcBar.classList.toggle('hidden', !isAdmin);
-        if (drawerAdminSection) drawerAdminSection.classList.toggle('hidden', !isAdmin);
-        if (adminProjectsTabBtn) adminProjectsTabBtn.classList.toggle('hidden', !isAdmin);
-        if (dmTabBtn) dmTabBtn.classList.toggle('hidden', !isAdmin);
-        if (drawerProjectsBtn) drawerProjectsBtn.classList.toggle('hidden', !isAdmin);
-        if (drawerDmBtn) drawerDmBtn.classList.toggle('hidden', !isAdmin);
-
-        if (isAdmin) {
-          if (typeof renderDmContacts === 'function') renderDmContacts();
-          if (typeof loadAdminStats === 'function') loadAdminStats();
-          if (typeof renderAdminStudents === 'function') renderAdminStudents();
-        }
-
-      } else {
-        // Mode Visiteur / Non connecté
-        if (authSection) authSection.classList.remove('hidden');
-        if (logoutSection) logoutSection.classList.add('hidden');
-        if (profileBtn) profileBtn.classList.add('hidden');
-        
-        if (adminPcBar) adminPcBar.classList.add('hidden');
-        if (drawerAdminSection) drawerAdminSection.classList.add('hidden');
-        if (adminProjectsTabBtn) adminProjectsTabBtn.classList.add('hidden');
-        if (dmTabBtn) dmTabBtn.classList.add('hidden');
-        if (drawerProjectsBtn) drawerProjectsBtn.classList.add('hidden');
-        if (drawerDmBtn) drawerDmBtn.classList.add('hidden');
-
-        if (userStatus) userStatus.innerText = "Visiteur";
-        if (welcomeMsg) welcomeMsg.innerText = "Votre plateforme académique & vie étudiante";
-        if (userLevelDisplay) userLevelDisplay.innerText = "Non connecté";
-
-        if (chatContainer) chatContainer.classList.add('hidden');
-        if (chatGuestWarning) chatGuestWarning.classList.remove('hidden');
-
-        if (adminNotice) adminNotice.classList.remove('hidden');
-        if (adminPanel) adminPanel.classList.add('hidden');
-      }
-
-      // Actualisation globale des différents flux de données si les fonctions existent
-      if (typeof renderAnnouncements === 'function') renderAnnouncements();
-      if (typeof renderCourses === 'function') renderCourses();
-      if (typeof renderBiblio === 'function') renderBiblio();
-      if (typeof renderSchedules === 'function') renderSchedules();
-      if (typeof renderChat === 'function') renderChat();
-      if (typeof renderProjects === 'function') renderProjects();
-      if (typeof updateNotifBadge === 'function') updateNotifBadge();
+    let roleBadge = '👤 Étudiant';
+    if (currentProfile.role === 'admin') {
+      const postName = currentProfile.adminPost || 'Admin';
+      roleBadge = `⚙️ Admin [${postName}]`;
     }
+
+    if (userStatus) userStatus.innerText = `\({roleBadge} :\){currentProfile.name}`;
+    if (welcomeMsg) welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
+    if (userLevelDisplay) userLevelDisplay.innerText = `\({currentProfile.level || ''} -\){currentProfile.major || ''}`;
+
+    // Pré-filtrer les cours selon la filière de l'étudiant
+    if (filterMajor && currentProfile.role !== 'admin') {
+      filterMajor.value = currentProfile.major;
+    }
+
+    if (chatContainer) chatContainer.classList.remove('hidden');
+    if (chatGuestWarning) chatGuestWarning.classList.add('hidden');
+
+    // Gestion des affichages spécifiques Admin vs Étudiant
+    const isAdmin = (currentProfile.role === 'admin');
+
+    if (adminNotice) adminNotice.classList.toggle('hidden', isAdmin);
+    if (adminPanel) adminPanel.classList.toggle('hidden', !isAdmin);
+    if (adminPcBar) adminPcBar.classList.toggle('hidden', !isAdmin);
+    if (drawerAdminSection) drawerAdminSection.classList.toggle('hidden', !isAdmin);
+    if (adminProjectsTabBtn) adminProjectsTabBtn.classList.toggle('hidden', !isAdmin);
+    if (dmTabBtn) dmTabBtn.classList.toggle('hidden', !isAdmin);
+    if (drawerProjectsBtn) drawerProjectsBtn.classList.toggle('hidden', !isAdmin);
+    if (drawerDmBtn) drawerDmBtn.classList.toggle('hidden', !isAdmin);
+
+    if (isAdmin) {
+      if (typeof renderDmContacts === 'function') renderDmContacts();
+      if (typeof loadAdminStats === 'function') loadAdminStats();
+      if (typeof renderAdminStudents === 'function') renderAdminStudents();
+    }
+
+  } else {
+    // Mode Visiteur / Non connecté
+    if (authSection) authSection.classList.remove('hidden');
+    if (logoutSection) logoutSection.classList.add('hidden');
+    if (profileBtn) profileBtn.classList.add('hidden');
+    
+    if (adminPcBar) adminPcBar.classList.add('hidden');
+    if (drawerAdminSection) drawerAdminSection.classList.add('hidden');
+    if (adminProjectsTabBtn) adminProjectsTabBtn.classList.add('hidden');
+    if (dmTabBtn) dmTabBtn.classList.add('hidden');
+    if (drawerProjectsBtn) drawerProjectsBtn.classList.add('hidden');
+    if (drawerDmBtn) drawerDmBtn.classList.add('hidden');
+
+    if (userStatus) userStatus.innerText = "Visiteur";
+    if (welcomeMsg) welcomeMsg.innerText = "Votre plateforme académique & vie étudiante";
+    if (userLevelDisplay) userLevelDisplay.innerText = "Non connecté";
+
+    if (chatContainer) chatContainer.classList.add('hidden');
+    if (chatGuestWarning) chatGuestWarning.classList.remove('hidden');
+
+    if (adminNotice) adminNotice.classList.remove('hidden');
+    if (adminPanel) adminPanel.classList.add('hidden');
+  }
+
+  // Actualisation globale des différents flux de données si les fonctions existent
+  if (typeof renderAnnouncements === 'function') renderAnnouncements();
+  if (typeof renderCourses === 'function') renderCourses();
+  if (typeof renderBiblio === 'function') renderBiblio();
+  if (typeof renderSchedules === 'function') renderSchedules();
+  if (typeof renderChat === 'function') renderChat();
+  if (typeof renderProjects === 'function') renderProjects();
+  if (typeof updateNotifBadge === 'function') updateNotifBadge();
+}
     function formatDriveLink(url) {
       if (!url) return '#';
       url = url.trim();
