@@ -1790,6 +1790,10 @@ db.ref('messages').on('value', (snapshot) => {
           alert("Veuillez remplir tous les champs de la suggestion.");
           return;
         }
+        if (!currentProfile || currentProfile.role !== 'admin') {
+    // Masquer la section des suggestions ou bloquer l'accès
+          return;
+        }
 
         const author = (isAnon || !currentProfile) ? "Anonyme" : `${currentProfile.name || 'Étudiant'} (${currentProfile.level || 'N/A'} - ${currentProfile.major || 'N/A'})`;
 
