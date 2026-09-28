@@ -779,11 +779,18 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       if (activeDmUser) renderDmConversation(activeDmUser);
     });
     function toggleSideDrawer() {
-      const drawer = document.getElementById('sideDrawer');
-      const overlay = document.getElementById('drawerOverlay');
-      drawer.classList.toggle('open');
-      overlay.classList.toggle('active');
-    }
+  const drawer = document.getElementById('sideDrawer');
+  const overlay = document.getElementById('drawerOverlay');
+  
+  // Vérification de sécurité pour éviter les plantages si un élément manque
+  if (!drawer || !overlay) return;
+
+  const isOpen = drawer.classList.toggle('open');
+  overlay.classList.toggle('active', isOpen); // Synchronisation parfaite
+
+  // Optionnel mais recommandé : Empêcher le défilement de la page en arrière-plan quand le menu est ouvert
+  document.body.style.overflow = isOpen ? 'hidden' : '';
+}
 
     function closeSideDrawer() {
       document.getElementById('sideDrawer').classList.remove('open');
