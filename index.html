@@ -797,6 +797,17 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       document.getElementById('drawerOverlay').classList.remove('active');
     }
 
+    function closeSideDrawer() {
+      const drawer = document.getElementById('sideDrawer');
+      const overlay = document.getElementById('drawerOverlay');
+      
+      if (drawer) drawer.classList.remove('open');
+      if (overlay) overlay.classList.remove('active');
+      
+      // Restaure le défilement de la page principale
+      document.body.style.overflow = '';
+    }
+
     function navigateFromDrawer(tabId) {
       closeSideDrawer();
       switchTab(tabId);
@@ -806,8 +817,13 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       switchTab('adminTab');
       setTimeout(() => {
         const el = document.getElementById(sectionId);
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Petit effet visuel de mise en valeur subtil
+          el.style.backgroundColor = '#fff8dc';
+          setTimeout(() => { el.style.backgroundColor = 'transparent'; }, 1500);
+        }
+      }, 150); // Légèrement augmenté à 150ms pour laisser le temps au DOM de s'afficher après switchTab
     }
 
     function navigateAndScroll(sectionId) {
@@ -815,43 +831,74 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       scrollToAdminSection(sectionId);
     }
 
+    // Gestion des gestes tactiles (Swipe)
     let touchStartX = 0;
     let touchEndX = 0;
 
     document.addEventListener('touchstart', (e) => {
       touchStartX = e.changedTouches[0].screenX;
-    }, false);
+    }, { passive: true });
 
     document.addEventListener('touchend', (e) => {
       touchEndX = e.changedTouches[0].screenX;
       handleSwipe();
-    }, false);
+    }, { passive: true });
 
     function handleSwipe() {
-      if (touchEndX - touchStartX > 80 && touchStartX < 50) {
-        toggleSideDrawer();
-      } else if (touchStartX - touchEndX > 80) {
-        closeSideDrawer();
+      const swipeDistance = touchEndX - touchStartX;
+      
+      // Swipe vers la droite (ouverture) : doit commencer près du bord gauche (< 40px)
+      if (swipeDistance > 80 && touchStartX < 40) {
+        const drawer = document.getElementById('sideDrawer');
+        // N'ouvre que s'il n'est pas déjà ouvert
+        if (drawer && !drawer.classList.contains('open')) {
+          toggleSideDrawer();
+        }
+      } 
+      // Swipe vers la gauche (fermeture)
+      else if (swipeDistance < -80) {
+        const drawer = document.getElementById('sideDrawer');
+        // Ferme seulement si le tiroir est actuellement ouvert
+        if (drawer && drawer.classList.contains('open')) {
+          closeSideDrawer();
+        }
       }
     }
-
-    function switchTab(tabId) {
+    function switchTab(tabId, btnElement) {
+      // Masquer tous les contenus d'onglets
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      
+      // Retirer la classe 'active' de tous les boutons de navigation
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
+      // Afficher l'onglet cible s'il existe
       const targetTab = document.getElementById(tabId);
-      if (targetTab) targetTab.classList.remove('hidden');
-
-      if (window.event && window.event.currentTarget && window.event.currentTarget.classList.contains('tab-btn')) {
-        window.event.currentTarget.classList.add('active');
+      if (targetTab) {
+        targetTab.classList.remove('hidden');
       }
+
+      // Activer le bouton correspondant (soit passé explicitement via 'this', soit retrouvé par son attribut onclick)
+      if (btnElement) {
+        btnElement.classList.add('active');
+      } else {
+        // Fallback propre pour retrouver le bouton si on appelle switchTab sans passer 'this'
+        const matchingBtn = document.querySelector(`.tab-btn[onclick*="${tabId}"]`);
+        if (matchingBtn) matchingBtn.classList.add('active');
+      }
+
+      // Remonter en haut de page en douceur lors du changement d'onglet
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function toggleRoleFields() {
-      const role = document.getElementById('authRole').value;
+      const roleSelect = document.getElementById('authRole');
       const section = document.getElementById('studentMajorLevelSection');
       const adminFields = document.getElementById('adminRoleFields');
       const codeInput = document.getElementById('authCode');
+
+      if (!roleSelect || !section || !adminFields || !codeInput) return;
+
+      const role = roleSelect.value;
 
       if (role === 'admin') {
         section.classList.add('hidden');
@@ -864,39 +911,39 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       }
     }
 
-    const authSection = document.getElementById('authSection');
-    const authTitle = document.getElementById('authTitle');
-    const registerFields = document.getElementById('registerFields');
-    const authSubmitBtn = document.getElementById('authSubmitBtn');
-    const toggleAuthText = document.getElementById('toggleAuthText');
-    const toggleAuthLink = document.getElementById('toggleAuthLink');
-
-    const userStatus = document.getElementById('userStatus');
-    const welcomeMsg = document.getElementById('welcomeMsg');
-    const userLevelDisplay = document.getElementById('userLevelDisplay');
-    const coursesContainer = document.getElementById('coursesList');
-    const announcementsContainer = document.getElementById('announcementsList');
-    const logoutSection = document.getElementById('logoutSection');
-    const logoutBtn = document.getElementById('logoutBtn');
+    // Fonction utilitaire sécurisée pour récupérer les éléments du DOM à la volée
+    function getAuthElements() {
+      return {
+        authSection: document.getElementById('authSection'),
+        authTitle: document.getElementById('authTitle'),
+        registerFields: document.getElementById('registerFields'),
+        authSubmitBtn: document.getElementById('authSubmitBtn'),
+        toggleAuthText: document.getElementById('toggleAuthText'),
+        toggleAuthLink: document.getElementById('toggleAuthLink')
+      };
+    }
 
     function toggleAuthMode(e) {
       if (e) e.preventDefault();
       isRegisterMode = !isRegisterMode;
+
+      const els = getAuthElements();
+      if (!els.authTitle || !els.registerFields || !els.authSubmitBtn) return;
+
       if (isRegisterMode) {
-        authTitle.innerText = "Créer un compte";
-        registerFields.classList.remove('hidden');
-        authSubmitBtn.innerText = "S'inscrire";
-        toggleAuthText.innerText = "Déjà inscrit ?";
-        toggleAuthLink.innerText = "Se connecter";
+        els.authTitle.innerText = "Créer un compte";
+        els.registerFields.classList.remove('hidden');
+        els.authSubmitBtn.innerText = "S'inscrire";
+        if (els.toggleAuthText) els.toggleAuthText.innerText = "Déjà inscrit ?";
+        if (els.toggleAuthLink) els.toggleAuthLink.innerText = "Se connecter";
       } else {
-        authTitle.innerText = "Espace Connexion";
-        registerFields.classList.add('hidden');
-        authSubmitBtn.innerText = "Se connecter";
-        toggleAuthText.innerText = "Nouveau sur le portail ?";
-        toggleAuthLink.innerText = "Créer un compte";
+        els.authTitle.innerText = "Espace Connexion";
+        els.registerFields.classList.add('hidden');
+        els.authSubmitBtn.innerText = "Se connecter";
+        if (els.toggleAuthText) els.toggleAuthText.innerText = "Nouveau sur le portail ?";
+        if (els.toggleAuthLink) els.toggleAuthLink.innerText = "Créer un compte";
       }
     }
-
     function handleAuthSubmit(e) {
       e.preventDefault();
       const email = document.getElementById('authUsername').value.trim();
