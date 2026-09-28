@@ -951,7 +951,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     if (toggleAuthLink) toggleAuthLink.textContent = "Créer un compte";
   }
 }
-   function handleAuthSubmit(e) {
+  function handleAuthSubmit(e) {
       if (e) e.preventDefault();
       
       const emailInput = document.getElementById('authUsername');
@@ -1030,7 +1030,9 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
                 } else {
                   firebase.auth().signOut();
                   alert("Compte créé avec succès ! 📧 Un e-mail de confirmation a été envoyé à " + email + ". Veuillez vérifier votre boîte de réception avant de vous connecter.");
-                  toggleAuthMode(e);
+                  
+                  // Redirection propre vers la page de connexion sans planter
+                  window.location.reload();
                 }
               });
             });
