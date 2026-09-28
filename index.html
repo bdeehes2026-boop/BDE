@@ -1214,73 +1214,119 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     function formatDriveLink(url) {
       if (!url) return '#';
       url = url.trim();
+      
+      // Gestion robuste des liens Google Drive (gère aussi les paramètres additionnels après l'ID)
       if (url.includes('drive.google.com') && url.includes('/d/')) {
-        const parts = url.split('/d/')[1].split('/');
-        const fileId = parts[0];
-        return `https://drive.google.com/uc?export=download&id=${fileId}`;
+        try {
+          const parts = url.split('/d/')[1].split('/');
+          const fileId = parts[0].split('?')[0]; // Nettoie les paramètres éventuels (?usp=sharing)
+          if (fileId) {
+            return `https://drive.google.com/uc?export=download&id=${fileId}`;
+          }
+        } catch (e) {
+          console.error("Erreur lors du formatage du lien Drive :", e);
+        }
       }
       return url;
     }
 
     function openProfileModal() {
       if (!currentProfile) return;
-      document.getElementById('profileName').value = currentProfile.name;
+      
+      const profileNameInput = document.getElementById('profileName');
       const profileStudentOnly = document.getElementById('profileStudentOnly');
-
-      if (currentProfile.role === 'admin') {
-        profileStudentOnly.classList.add('hidden');
-      } else {
-        profileStudentOnly.classList.remove('hidden');
-        document.getElementById('profileMajor').value = currentProfile.major;
-        document.getElementById('profileLevel').value = currentProfile.level;
+      const profileModal = document.getElementById('profileModal');
+      
+      if (profileNameInput) profileNameInput.value = currentProfile.name || '';
+      
+      if (profileStudentOnly) {
+        if (currentProfile.role === 'admin') {
+          profileStudentOnly.classList.add('hidden');
+        } else {
+          profileStudentOnly.classList.remove('hidden');
+          const profileMajor = document.getElementById('profileMajor');
+          const profileLevel = document.getElementById('profileLevel');
+          
+          if (profileMajor) profileMajor.value = currentProfile.major || '';
+          if (profileLevel) profileLevel.value = currentProfile.level || '';
+        }
       }
-      document.getElementById('profileModal').classList.remove('hidden');
+      
+      if (profileModal) profileModal.classList.remove('hidden');
     }
 
     function closeProfileModal() {
-      document.getElementById('profileModal').classList.add('hidden');
+      const profileModal = document.getElementById('profileModal');
+      if (profileModal) profileModal.classList.add('hidden');
     }
 
-    document.getElementById('profileForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (!currentProfile) return;
+    // Sécurisation de l'écouteur de soumission du profil
+    const profileForm = document.getElementById('profileForm');
+    if (profileForm) {
+      profileForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!currentProfile) return;
 
-      currentProfile.name = document.getElementById('profileName').value.trim();
-      if (currentProfile.role !== 'admin') {
-        currentProfile.major = document.getElementById('profileMajor').value;
-        currentProfile.level = document.getElementById('profileLevel').value;
-      }
+        const profileNameInput = document.getElementById('profileName');
+        if (profileNameInput) {
+          currentProfile.name = profileNameInput.value.trim();
+        }
 
-      db.ref('users/' + currentProfile.id).update(currentProfile)
-        .then(() => {
-          localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
-          checkUserSession();
-          closeProfileModal();
-          alert("Profil mis à jour !");
-        });
-    });
+        if (currentProfile.role !== 'admin') {
+          const profileMajor = document.getElementById('profileMajor');
+          const profileLevel = document.getElementById('profileLevel');
+          
+          if (profileMajor) currentProfile.major = profileMajor.value;
+          if (profileLevel) currentProfile.level = profileLevel.value;
+        }
 
+        // Mise à jour sécurisée dans Firebase Realtime Database
+        db.ref('users/' + currentProfile.id).update(currentProfile)
+          .then(() => {
+            localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
+            if (typeof checkUserSession === 'function') checkUserSession();
+            closeProfileModal();
+            alert("Profil mis à jour avec succès !");
+          })
+          .catch((error) => {
+            alert("Erreur lors de la mise à jour du profil : " + error.message);
+          });
+      });
+    }
     function renderCourses() {
+      const coursesContainer = document.getElementById('coursesList');
+      if (!coursesContainer) return; // Sécurité si le conteneur n'existe pas sur la vue
+
       if (!currentProfile) {
         coursesContainer.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
         return;
       }
       
-      const allCourses = Object.values(coursesList);
-      const selectedMajor = document.getElementById('filterMajor').value;
-      const query = document.getElementById('searchCourseInput').value.toLowerCase().trim();
+      // Sécurité si coursesList (l'objet global de données) n'est pas défini
+      const rawCourses = typeof coursesList !== 'undefined' ? coursesList : {};
+      const allCourses = Object.values(rawCourses);
+
+      const filterMajorEl = document.getElementById('filterMajor');
+      const searchCourseInput = document.getElementById('searchCourseInput');
+
+      const selectedMajor = filterMajorEl ? filterMajorEl.value : 'ALL';
+      const query = searchCourseInput ? searchCourseInput.value.toLowerCase().trim() : '';
 
       let userCourses = allCourses;
-      if (currentProfile.role !== 'admin') {
+
+      // Filtrage par niveau si ce n'est pas un admin
+      if (currentProfile.role !== 'admin' && currentProfile.level) {
         userCourses = allCourses.filter(c => c.level === currentProfile.level);
       }
 
-      if (selectedMajor !== 'ALL') {
+      // Filtrage par filière
+      if (selectedMajor && selectedMajor !== 'ALL') {
         userCourses = userCourses.filter(c => c.major === selectedMajor);
       }
 
+      // Filtrage par recherche textuelle
       if (query) {
-        userCourses = userCourses.filter(c => c.title.toLowerCase().includes(query));
+        userCourses = userCourses.filter(c => c.title && c.title.toLowerCase().includes(query));
       }
 
       if (!userCourses.length) {
@@ -1288,6 +1334,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         return;
       }
 
+      // Regroupement par filière
       const grouped = {};
       userCourses.forEach(c => {
         const majorKey = c.major || "Général";
@@ -1297,14 +1344,17 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
       let html = '';
       for (let major in grouped) {
-        html += `<div class="level-group">`;
-        html += `<div class="level-title">📂 ${major}</div>`;
+        html += `<div class="level-group" style="margin-bottom: 20px;">`;
+        html += `<div class="level-title" style="font-weight: bold; margin-bottom: 10px; color: var(--primary);">📂 ${major}</div>`;
+        
         grouped[major].forEach(c => {
-          const downloadUrl = formatDriveLink(c.url);
+          const downloadUrl = typeof formatDriveLink === 'function' ? formatDriveLink(c.url) : (c.url || '#');
+          const courseTitle = c.title || 'Document sans titre';
+          
           html += `
-            <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px;">
-              <strong>${c.title}</strong><br>
-              <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Télécharger le document</a>
+            <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+              <strong style="color: #2c3e50;">${courseTitle}</strong><br>
+              <a href="${downloadUrl}" class="drive-link" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 6px; font-size: 0.9rem; text-decoration: none; color: #d35400;">💾 Télécharger le document</a>
             </div>
           `;
         });
@@ -1313,22 +1363,34 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
       coursesContainer.innerHTML = html;
     }
-
     function renderBiblio() {
       const container = document.getElementById('biblioList');
       if (!container) return;
 
-      const allBooks = Object.values(booksList);
-      const selectedMajor = document.getElementById('biblioFilterMajor').value;
-      const query = document.getElementById('searchBiblioInput').value.toLowerCase().trim();
+      // Sécurité si booksList n'est pas défini globalement
+      const rawBooks = typeof booksList !== 'undefined' ? booksList : {};
+      const allBooks = Object.values(rawBooks);
+
+      const biblioFilterMajorEl = document.getElementById('biblioFilterMajor');
+      const searchBiblioInput = document.getElementById('searchBiblioInput');
+
+      const selectedMajor = biblioFilterMajorEl ? biblioFilterMajorEl.value : 'ALL';
+      const query = searchBiblioInput ? searchBiblioInput.value.toLowerCase().trim() : '';
 
       let filteredBooks = allBooks;
-      if (selectedMajor !== 'ALL') {
+
+      // Filtrage par filière
+      if (selectedMajor && selectedMajor !== 'ALL') {
         filteredBooks = allBooks.filter(b => b.major === selectedMajor);
       }
 
+      // Filtrage par recherche textuelle (titre ou auteur)
       if (query) {
-        filteredBooks = filteredBooks.filter(b => b.title.toLowerCase().includes(query) || b.author.toLowerCase().includes(query));
+        filteredBooks = filteredBooks.filter(b => {
+          const title = b.title ? b.title.toLowerCase() : '';
+          const author = b.author ? b.author.toLowerCase() : '';
+          return title.includes(query) || author.includes(query);
+        });
       }
 
       if (!filteredBooks.length) {
@@ -1338,12 +1400,104 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
       let html = '';
       filteredBooks.forEach(b => {
-        const downloadUrl = formatDriveLink(b.url);
+        const downloadUrl = typeof formatDriveLink === 'function' ? formatDriveLink(b.url) : (b.url || '#');
+        const bookTitle = b.title || 'Ouvrage sans titre';
+        const bookAuthor = b.author || 'Auteur inconnu';
+        const bookMajor = b.major || 'Général';
+
         html += `
-          <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--primary); border-radius:8px;">
-            <strong>📖 ${b.title}</strong> <small style="color:var(--light-text);">par ${b.author}</small>
-            <div><span class="major-badge">${b.major}</span></div>
-            <a href="${downloadUrl}" class="drive-link" target="_blank" download>💾 Accéder au livre</a>
+          <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--primary); border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <strong>📖 ${bookTitle}</strong> <small style="color:var(--light-text);">par ${bookAuthor}</small>
+            <div style="margin-top: 6px;"><span class="major-badge" style="font-size: 0.8rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${bookMajor}</span></div>
+            <a href="${downloadUrl}" class="drive-link" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 8px; font-size: 0.9rem; text-decoration: none; color: #2b6cb0;">💾 Accéder au livre</a>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+   function renderSchedules() {
+      const schedContainer = document.getElementById('scheduleList');
+      if (!schedContainer) return;
+
+      // Sécurité si schedulesList n'est pas défini
+      const rawSchedules = typeof schedulesList !== 'undefined' ? schedulesList : {};
+      const allSchedules = Object.values(rawSchedules);
+
+      let mySchedules = allSchedules;
+      if (currentProfile && currentProfile.role !== 'admin') {
+        mySchedules = allSchedules.filter(s => 
+          (s.major === currentProfile.major || s.major === 'TOUS') && 
+          (s.level === currentProfile.level || s.level === 'TOUS')
+        );
+      }
+
+      if (!mySchedules.length) {
+        schedContainer.innerHTML = '<p style="color:var(--light-text);">Aucun emploi du temps disponible.</p>';
+        return;
+      }
+
+      let html = '';
+      mySchedules.forEach(s => {
+        const downloadUrl = typeof formatDriveLink === 'function' ? formatDriveLink(s.url) : (s.url || '#');
+        const linkHtml = s.url ? `<a href="${downloadUrl}" class="drive-link" target="_blank" rel="noopener noreferrer" style="display:inline-block; margin-top:6px; font-size:0.9rem; text-decoration:none; color:#2b6cb0;">📄 Consulter le document</a>` : '';
+        const mediaHtml = s.mediaData ? `<img src="${s.mediaData}" class="feed-media" style="max-width:100%; border-radius:6px; margin-top:8px;">` : '';
+        const majorText = s.major || 'Général';
+        const levelText = s.level || '';
+        const titleText = s.title || 'Emploi du temps';
+
+        html += `
+          <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+            <strong>🗓️ ${titleText}</strong> <span style="font-size:0.85rem; color:var(--light-text);">(${majorText} - ${levelText})</span><br>
+            ${mediaHtml}
+            ${linkHtml}
+          </div>
+        `;
+      });
+
+      schedContainer.innerHTML = html;
+    }
+
+    function renderAnnouncements() {
+      // announcementsContainer est supposé défini globalement, mais on sécurise avec un getElementById par précaution
+      const container = announcementsContainer || document.getElementById('announcementsList');
+      if (!container) return;
+
+      const rawPosts = typeof postsList !== 'undefined' ? postsList : {};
+      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+      
+      const allPosts = Object.values(rawPosts).filter(p => p.timestamp && (Date.now() - p.timestamp) < ONE_WEEK_MS);
+      allPosts.sort((a, b) => b.timestamp - a.timestamp);
+
+      if (!allPosts.length) {
+        container.innerHTML = '<p style="color:var(--light-text);">Aucune nouvelle annonce pour le moment.</p>';
+        return;
+      }
+
+      let html = '';
+      allPosts.forEach(p => {
+        const dateStr = new Date(p.timestamp).toLocaleDateString();
+        let mediaHtml = '';
+
+        if (p.mediaData) {
+          if (p.mediaType && p.mediaType.startsWith('image/')) {
+            mediaHtml = `<img src="${p.mediaData}" class="feed-media" style="max-width:100%; border-radius:6px; margin-top:8px;">`;
+          } else if (p.mediaType && p.mediaType.startsWith('video/')) {
+            mediaHtml = `<video src="${p.mediaData}" controls class="feed-media" style="max-width:100%; border-radius:6px; margin-top:8px;"></video>`;
+          }
+        }
+
+        const postTitle = p.title || 'Annonce';
+        const postContent = p.content || '';
+
+        html += `
+          <div class="feed-item" style="background:#fff; padding:15px; margin-bottom:12px; border-radius:8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+            <div class="feed-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="feed-title" style="font-weight:bold; color:var(--primary);">${postTitle}</span>
+              <span class="feed-date" style="font-size:0.8rem; color:var(--light-text);">${dateStr}</span>
+            </div>
+            <p style="margin: 5px 0; color:#2d3748; line-height:1.4;">${postContent}</p>
+            ${mediaHtml}
           </div>
         `;
       });
@@ -1351,67 +1505,11 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       container.innerHTML = html;
     }
 
-    function renderSchedules() {
-      const schedContainer = document.getElementById('scheduleList');
-      if (!schedContainer) return;
-
-      const allSchedules = Object.values(schedulesList);
-
-      let mySchedules = allSchedules;
-      if (currentProfile && currentProfile.role !== 'admin') {
-        mySchedules = allSchedules.filter(s => (s.major === currentProfile.major || s.major === 'TOUS') && (s.level === currentProfile.level || s.level === 'TOUS'));
-      }
-
-      schedContainer.innerHTML = mySchedules.length ? '' : '<p style="color:var(--light-text);">Aucun emploi du temps disponible.</p>';
-      mySchedules.forEach(s => {
-        const downloadUrl = formatDriveLink(s.url);
-        let linkHtml = s.url ? `<a href="${downloadUrl}" class="drive-link" target="_blank">📄 Consulter le document</a>` : '';
-        let mediaHtml = s.mediaData ? `<img src="${s.mediaData}" class="feed-media">` : '';
-
-        schedContainer.innerHTML += `
-          <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px;">
-            <strong>🗓️ ${s.title}</strong> (${s.major} - ${s.level})<br>
-            ${mediaHtml}
-            ${linkHtml}
-          </div>
-        `;
-      });
-    }
-
-    function renderAnnouncements() {
-      const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-      const allPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
-      allPosts.sort((a,b) => b.timestamp - a.timestamp);
-
-      announcementsContainer.innerHTML = allPosts.length ? '' : '<p style="color:var(--light-text);">Aucune nouvelle annonce pour le moment.</p>';
-      allPosts.forEach(p => {
-        const dateStr = new Date(p.timestamp).toLocaleDateString();
-        let mediaHtml = '';
-
-        if (p.mediaData) {
-          if (p.mediaType && p.mediaType.startsWith('image/')) {
-            mediaHtml = `<img src="${p.mediaData}" class="feed-media">`;
-          } else if (p.mediaType && p.mediaType.startsWith('video/')) {
-            mediaHtml = `<video src="${p.mediaData}" controls class="feed-media"></video>`;
-          }
-        }
-
-        announcementsContainer.innerHTML += `
-          <div class="feed-item">
-            <div class="feed-header">
-              <span class="feed-title">${p.title}</span>
-              <span class="feed-date">${dateStr}</span>
-            </div>
-            <p style="margin: 5px 0;">${p.content}</p>
-            ${mediaHtml}
-          </div>
-        `;
-      });
-    }
-
     // Gestion centralisée et ultra-robuste des notifications
-    function toggleNotificationPanel() {
+   function toggleNotificationPanel() {
       const panel = document.getElementById('notifPanelDropdown');
+      if (!panel) return;
+
       if (panel.style.display === 'none' || panel.style.display === '') {
         panel.style.display = 'block';
         renderDropdownNotifications();
@@ -1420,18 +1518,19 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       }
     }
 
+    // Fermeture du panneau si on clique en dehors
     window.addEventListener('click', function(e) {
       const notifBtn = document.getElementById('notifBtn');
       const panel = document.getElementById('notifPanelDropdown');
       if (notifBtn && panel && !notifBtn.contains(e.target) && !panel.contains(e.target)) {
         panel.style.display = 'none';
       }
-    });
+    }, { passive: true });
 
     function isLeader(user) {
       if (!user) return false;
       if (user.role === 'admin') {
-        if (!user.adminPost) return true;
+        if (!user.adminPost) return true; // Admin général sans poste spécifique considéré comme leader
         const post = user.adminPost.toLowerCase().trim();
         return post.includes('president') || post.includes('président') || post.includes('vice');
       }
@@ -1439,11 +1538,17 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     }
 
     function updateNotifBadge() {
+      const badge = document.getElementById('notifBadge');
+      if (!badge) return;
+
+      const rawPosts = typeof postsList !== 'undefined' ? postsList : {};
+      const rawNotifs = typeof notificationsList !== 'undefined' ? notificationsList : {};
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-      const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS);
+
+      const recentPosts = Object.values(rawPosts).filter(p => p.timestamp && (Date.now() - p.timestamp) < ONE_WEEK_MS);
       
-      const userNotifs = Object.values(notificationsList).filter(n => {
-        if ((Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
+      const userNotifs = Object.values(rawNotifs).filter(n => {
+        if (!n.timestamp || (Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
         if (n.target === 'all') return true;
         if (currentProfile && n.target === currentProfile.id) return true;
         if (currentProfile && n.target === 'leaders' && isLeader(currentProfile)) return true;
@@ -1452,15 +1557,25 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
       const totalNotifs = recentPosts.length + userNotifs.length;
       
-      const badge = document.getElementById('notifBadge');
-      if (unreadNotifCount === 0 && totalNotifs > 0) {
-        unreadNotifCount = totalNotifs;
-      }
-      if (unreadNotifCount > 0) {
-        badge.innerText = unreadNotifCount;
-        badge.style.display = 'block';
+      // Variable globale unreadNotifCount supposée définie ailleurs
+      if (typeof unreadNotifCount !== 'undefined') {
+        if (unreadNotifCount === 0 && totalNotifs > 0) {
+          unreadNotifCount = totalNotifs;
+        }
+        if (unreadNotifCount > 0) {
+          badge.innerText = unreadNotifCount;
+          badge.style.display = 'block';
+        } else {
+          badge.style.display = 'none';
+        }
       } else {
-        badge.style.display = 'none';
+        // Fallback si la variable n'existe pas
+        if (totalNotifs > 0) {
+          badge.innerText = totalNotifs;
+          badge.style.display = 'block';
+        } else {
+          badge.style.display = 'none';
+        }
       }
     }
 
@@ -1468,147 +1583,213 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       const container = document.getElementById('notifDropdownList');
       if (!container) return;
 
+      const rawPosts = typeof postsList !== 'undefined' ? postsList : {};
+      const rawNotifs = typeof notificationsList !== 'undefined' ? notificationsList : {};
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-      const recentPosts = Object.values(postsList).filter(p => (Date.now() - p.timestamp) < ONE_WEEK_MS).map(p => ({ title: p.title, content: p.content, timestamp: p.timestamp, type: 'post' }));
+
+      const recentPosts = Object.values(rawPosts)
+        .filter(p => p.timestamp && (Date.now() - p.timestamp) < ONE_WEEK_MS)
+        .map(p => ({ title: p.title || 'Annonce', content: p.content || '', timestamp: p.timestamp, type: 'post' }));
       
-      const userNotifs = Object.values(notificationsList).filter(n => {
-        if ((Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
-        if (n.target === 'all') return true;
-        if (currentProfile && n.target === currentProfile.id) return true;
-        if (currentProfile && n.target === 'leaders' && isLeader(currentProfile)) return true;
-        return false;
-      }).map(n => ({ title: n.title, content: n.body, timestamp: n.timestamp, type: 'notif' }));
+      const userNotifs = Object.values(rawNotifs)
+        .filter(n => {
+          if (!n.timestamp || (Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
+          if (n.target === 'all') return true;
+          if (currentProfile && n.target === currentProfile.id) return true;
+          if (currentProfile && n.target === 'leaders' && isLeader(currentProfile)) return true;
+          return false;
+        })
+        .map(n => ({ title: n.title || 'Notification', content: n.body || '', timestamp: n.timestamp, type: 'notif' }));
       
       const allItems = [...recentPosts, ...userNotifs];
-      allItems.sort((a,b) => b.timestamp - a.timestamp);
+      allItems.sort((a, b) => b.timestamp - a.timestamp);
 
       if (!allItems.length) {
         container.innerHTML = '<p id="noNotifDropdownText" style="text-align: center; color: var(--light-text); font-size: 0.85rem; padding: 15px 0; margin: 0;">Aucune notification pour le moment</p>';
-      } else {
-        let html = '';
-        allItems.forEach(p => {
-          const prefix = p.type === 'notif' ? '📲' : '📢';
-          const timeStr = new Date(p.timestamp).toLocaleDateString();
-          html += `
-            <div style="padding: 8px 0; border-bottom: 1px solid #eee; margin-bottom: 5px;">
-              <strong style="font-size: 0.85rem; color: var(--primary);">${prefix} ${p.title}</strong>
-              <p style="margin: 3px 0; font-size: 0.8rem; color: #555;">${p.content}</p>
-              <div style="font-size: 0.68rem; color: var(--light-text); text-align: right;">${timeStr}</div>
-            </div>
-          `;
-        });
-        container.innerHTML = html;
+        return;
       }
-    }
 
-    function marquerToutCommeLu() {
-      unreadNotifCount = 0;
-      const badge = document.getElementById('notifBadge');
-      badge.style.display = 'none';
-      badge.innerText = '0';
-      document.getElementById('notifPanelDropdown').style.display = 'none';
-    }
-
-    const chatForm = document.getElementById('chatForm');
-    const chatInput = document.getElementById('chatInput');
-    const chatBox = document.getElementById('chatBox');
-
-    chatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (!currentProfile) return;
-
-      const text = chatInput.value.trim();
-      if (!text) return;
-
-      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      db.ref('messages').push({
-        sender: currentProfile.name,
-        level: currentProfile.level,
-        major: currentProfile.major,
-        text: text,
-        time: timeStr,
-        timestamp: Date.now()
-      });
-
-      chatInput.value = '';
-    });
-
-    function renderChat() {
-      const entries = Object.entries(messagesList);
-      entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-
-      chatBox.innerHTML = entries.length ? '' : '<p style="color:var(--light-text);">Aucun message pour le moment.</p>';
-      
-      entries.forEach(([key, m]) => {
-        const majorInfo = m.major ? ` - ${m.major}` : '';
-        const isAdmin = (currentProfile && currentProfile.role === 'admin');
-        const deleteBtn = isAdmin ? `<button class="btn-danger" style="margin-top:4px;" onclick="deleteChatMessage('${key}')">🗑️ Supprimer</button>` : '';
-        const reportBtn = (currentProfile && !isAdmin) ? `<button class="btn-warning" onclick="reportChatMessage('${key}')">🚩 Signaler</button>` : '';
-
-        chatBox.innerHTML += `
-          <div class="chat-msg">
-            <span class="chat-time">${m.time}</span>
-            <strong>${m.sender} (${m.level}${majorInfo})</strong>
-            <div style="margin-top: 3px;">${m.text}</div>
-            ${deleteBtn} ${reportBtn}
+      let html = '';
+      allItems.forEach(p => {
+        const prefix = p.type === 'notif' ? '📲' : '📢';
+        const timeStr = new Date(p.timestamp).toLocaleDateString();
+        html += `
+          <div style="padding: 8px 0; border-bottom: 1px solid #eee; margin-bottom: 5px;">
+            <strong style="font-size: 0.85rem; color: var(--primary);">${prefix} ${p.title}</strong>
+            <p style="margin: 3px 0; font-size: 0.8rem; color: #555;">${p.content}</p>
+            <div style="font-size: 0.68rem; color: var(--light-text); text-align: right;">${timeStr}</div>
           </div>
         `;
       });
+      container.innerHTML = html;
+    }
+
+    function marquerToutCommeLu() {
+      if (typeof unreadNotifCount !== 'undefined') {
+        unreadNotifCount = 0;
+      }
+      const badge = document.getElementById('notifBadge');
+      if (badge) {
+        badge.style.display = 'none';
+        badge.innerText = '0';
+      }
+      const panel = document.getElementById('notifPanelDropdown');
+      if (panel) {
+        panel.style.display = 'none';
+      }
+    }
+
+    // Gestion de l'envoi de messages dans le chat
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+
+    if (chatForm && chatInput) {
+      chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!currentProfile) {
+          alert("Vous devez être connecté pour envoyer un message.");
+          return;
+        }
+
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        db.ref('messages').push({
+          sender: currentProfile.name || 'Anonyme',
+          level: currentProfile.level || 'N/A',
+          major: currentProfile.major || 'N/A',
+          text: text,
+          time: timeStr,
+          timestamp: Date.now()
+        }).catch(err => {
+          console.error("Erreur lors de l'envoi du message :", err);
+          alert("Impossible d'envoyer le message. Veuillez réessayer.");
+        });
+
+        chatInput.value = '';
+      });
+    }
+
+   function renderChat() {
+      const chatBox = document.getElementById('chatBox');
+      if (!chatBox) return;
+
+      const rawMessages = typeof messagesList !== 'undefined' ? messagesList : {};
+      const entries = Object.entries(rawMessages);
+      entries.sort((a, b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
+
+      if (!entries.length) {
+        chatBox.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:20px;">Aucun message pour le moment.</p>';
+        return;
+      }
+      
+      let html = '';
+      const isAdmin = (currentProfile && currentProfile.role === 'admin');
+
+      entries.forEach(([key, m]) => {
+        const majorInfo = m.major ? ` - ${m.major}` : '';
+        const levelInfo = m.level || '';
+        const senderName = m.sender || 'Anonyme';
+        const msgTime = m.time || '';
+        const msgText = m.text || '';
+
+        const deleteBtn = isAdmin ? `<button class="btn-danger" style="margin-top:4px; background:#e53e3e; color:#fff; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem;" onclick="deleteChatMessage('${key}')">🗑️ Supprimer</button>` : '';
+        const reportBtn = (currentProfile && !isAdmin) ? `<button class="btn-warning" style="margin-top:4px; background:#dd6b20; color:#fff; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem;" onclick="reportChatMessage('${key}')">🚩 Signaler</button>` : '';
+
+        html += `
+          <div class="chat-msg" style="background:#fff; padding:10px; margin-bottom:8px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <strong style="font-size:0.85rem; color:var(--primary);">${senderName} <span style="font-weight:normal; color:var(--light-text);">(${levelInfo}${majorInfo})</span></strong>
+              <span class="chat-time" style="font-size:0.75rem; color:var(--light-text);">${msgTime}</span>
+            </div>
+            <div style="margin-top: 3px; font-size:0.9rem; color:#2d3748; word-break:break-word;">${msgText}</div>
+            <div style="margin-top:5px;">${deleteBtn} ${reportBtn}</div>
+          </div>
+        `;
+      });
+
+      chatBox.innerHTML = html;
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     function reportChatMessage(msgKey) {
+      if (!messagesList || !messagesList[msgKey]) return;
       if (confirm("Signaler ce message à l'administration du BDE ?")) {
         const msg = messagesList[msgKey];
         db.ref('reports').push({
           msgKey: msgKey,
-          sender: msg.sender,
-          text: msg.text,
+          sender: msg.sender || 'Inconnu',
+          text: msg.text || '',
           reportedBy: currentProfile ? currentProfile.name : "Anonyme",
           timestamp: Date.now()
+        }).then(() => {
+          alert("Signalement transmis à l'Admin ! Merci.");
+        }).catch(err => {
+          console.error("Erreur signalement :", err);
         });
-        alert("Signalement transmis à l'Admin ! Merci.");
       }
     }
 
     function deleteChatMessage(msgKey) {
       if (confirm("Voulez-vous vraiment supprimer ce message du forum ?")) {
-        db.ref('messages/' + msgKey).remove();
+        db.ref('messages/' + msgKey).remove().catch(err => {
+          console.error("Erreur suppression :", err);
+        });
       }
     }
 
     function cleanOldMessages() {
+      if (typeof messagesList === 'undefined') return;
       const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
       const now = Date.now();
       for (let key in messagesList) {
-        if (now - messagesList[key].timestamp > THIRTY_DAYS_MS) {
+        if (messagesList[key].timestamp && (now - messagesList[key].timestamp > THIRTY_DAYS_MS)) {
           db.ref('messages/' + key).remove();
         }
       }
     }
 
-    document.getElementById('suggestForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const title = document.getElementById('suggestTitle').value.trim();
-      const content = document.getElementById('suggestContent').value.trim();
-      const isAnon = document.getElementById('suggestAnon').checked;
+    // Gestion du formulaire de suggestion
+    const suggestForm = document.getElementById('suggestForm');
+    if (suggestForm) {
+      suggestForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const titleEl = document.getElementById('suggestTitle');
+        const contentEl = document.getElementById('suggestContent');
+        const anonEl = document.getElementById('suggestAnon');
 
-      const author = (isAnon || !currentProfile) ? "Anonyme" : `${currentProfile.name} (${currentProfile.level} - ${currentProfile.major})`;
+        if (!titleEl || !contentEl) return;
 
-      db.ref('suggestions').push({
-        author,
-        title,
-        content,
-        date: new Date().toLocaleDateString(),
-        timestamp: Date.now()
+        const title = titleEl.value.trim();
+        const content = contentEl.value.trim();
+        const isAnon = anonEl ? anonEl.checked : false;
+
+        if (!title || !content) {
+          alert("Veuillez remplir tous les champs de la suggestion.");
+          return;
+        }
+
+        const author = (isAnon || !currentProfile) ? "Anonyme" : `${currentProfile.name || 'Étudiant'} (${currentProfile.level || 'N/A'} - ${currentProfile.major || 'N/A'})`;
+
+        db.ref('suggestions').push({
+          author,
+          title,
+          content,
+          date: new Date().toLocaleDateString(),
+          timestamp: Date.now()
+        }).then(() => {
+          alert("Votre suggestion a bien été envoyée au BDE ! Merci.");
+          titleEl.value = '';
+          contentEl.value = '';
+          if (anonEl) anonEl.checked = false;
+        }).catch(err => {
+          console.error("Erreur suggestion :", err);
+          alert("Erreur lors de l'envoi. Veuillez réessayer.");
+        });
       });
-
-      alert("Votre suggestion a bien été envoyée au BDE ! Merci.");
-      document.getElementById('suggestTitle').value = '';
-      document.getElementById('suggestContent').value = '';
-      document.getElementById('suggestAnon').checked = false;
-    });
-
+    }
     /* GESTION DES PROJETS BDE AVEC NOTIFICATION & BOUTONS PR / VICE-PR */
     function submitProject() {
       if (!currentProfile || currentProfile.role !== 'admin') return;
