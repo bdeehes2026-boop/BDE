@@ -2409,7 +2409,7 @@ Pour que le bouton de suppression de la suggestion fonctionne directement :
       }
     }
 
-    if ('serviceWorker' in navigator) {
+   if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
           .then((reg) => console.log('Service Worker PWA prêt !', reg.scope))
@@ -2418,6 +2418,3 @@ Pour que le bouton de suppression de la suggestion fonctionne directement :
     }
 
     checkUserSession();
-  </script>
-</body>
-</html>
