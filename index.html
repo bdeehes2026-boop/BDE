@@ -951,7 +951,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     if (toggleAuthLink) toggleAuthLink.textContent = "Créer un compte";
   }
 }
-  function handleAuthSubmit(e) {
+ function handleAuthSubmit(e) {
       if (e) e.preventDefault();
       
       const emailInput = document.getElementById('authUsername');
@@ -967,8 +967,11 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         return;
       }
 
-      if (isRegisterMode) {
-        const nameInput = document.getElementById('authName');
+      // Si le champ du nom existe et est visible, on force automatiquement le mode Inscription !
+      const nameInput = document.getElementById('authName');
+      const forceRegister = nameInput && nameInput.offsetParent !== null; 
+
+      if (isRegisterMode || forceRegister) {
         const roleSelect = document.getElementById('authRole');
         const codeInput = document.getElementById('authCode');
 
@@ -1030,8 +1033,6 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
                 } else {
                   firebase.auth().signOut();
                   alert("Compte créé avec succès ! 📧 Un e-mail de confirmation a été envoyé à " + email + ". Veuillez vérifier votre boîte de réception avant de vous connecter.");
-                  
-                  // Redirection propre vers la page de connexion sans planter
                   window.location.reload();
                 }
               });
@@ -1053,6 +1054,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
             if (!authUser.emailVerified) {
               authUser.delete().then(() => {
                 alert("⚠️ Ce compte n'a pas été vérifié par e-mail et a été supprimé. Veuillez vous réinscrire.");
+                window.location.reload();
               }).catch((error) => {
                 console.error("Erreur lors de la suppression du compte non vérifié :", error);
               });
