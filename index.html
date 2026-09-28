@@ -2681,6 +2681,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log("✅ Écouteurs et initialisation en place avec succès !");
 });
+    // Variable de sécurité globale pour neutraliser l'erreur
+if (typeof announcementsContainer === 'undefined') {
+  var announcementsContainer = null;
+}
   </script>
 </body>
 </html>
