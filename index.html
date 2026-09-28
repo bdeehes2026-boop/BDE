@@ -1114,7 +1114,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
               if (typeof checkUserSession === 'function') checkUserSession();
               
               alert("Connexion réussie ! Bienvenue " + currentProfile.name);
-              
+              initPushNotification(); 
               if (typeof switchTab === 'function') switchTab('homeTab');
               if (typeof updateUI === 'function') updateUI();
             });
