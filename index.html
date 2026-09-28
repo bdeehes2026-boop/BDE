@@ -1041,6 +1041,13 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
       } else {
         // Mode Connexion
+        } else {
+        // Mode Connexion
+        console.log("Envoi à Firebase - Email:", email, "Mot de passe length:", password.length);
+        
+        firebase.auth().signInWithEmailAndPassword(email, password)
+          .then((userCredential) => {
+            // ... reste du code
         firebase.auth().signInWithEmailAndPassword(email, password)
           .then((userCredential) => {
             const authUser = userCredential.user;
