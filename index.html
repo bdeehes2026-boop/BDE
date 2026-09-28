@@ -1792,17 +1792,28 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     }
     /* GESTION DES PROJETS BDE AVEC NOTIFICATION & BOUTONS PR / VICE-PR */
     function submitProject() {
-      if (!currentProfile || currentProfile.role !== 'admin') return;
-      const title = document.getElementById('projTitle').value.trim();
-      const desc = document.getElementById('projDesc').value.trim();
-      const month = document.getElementById('projTargetMonth').value;
+      if (!currentProfile || currentProfile.role !== 'admin') {
+        alert("Action réservée aux administrateurs (ministères).");
+        return;
+      }
+
+      const titleEl = document.getElementById('projTitle');
+      const descEl = document.getElementById('projDesc');
+      const monthEl = document.getElementById('projTargetMonth');
+
+      if (!titleEl || !descEl || !monthEl) return;
+
+      const title = titleEl.value.trim();
+      const desc = descEl.value.trim();
+      const month = monthEl.value;
 
       if (!title || !desc || !month) {
         alert("Veuillez remplir tous les champs du projet.");
         return;
       }
 
-      const allProjects = Object.values(projectsList);
+      const rawProjects = typeof projectsList !== 'undefined' ? projectsList : {};
+      const allProjects = Object.values(rawProjects);
       const myProjectsThisMonth = allProjects.filter(p => p.authorId === currentProfile.id && p.month === month);
       
       if (myProjectsThisMonth.length >= 3) {
@@ -1817,22 +1828,23 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         desc,
         month,
         authorId: currentProfile.id,
-        authorName: currentProfile.name,
+        authorName: currentProfile.name || 'Admin',
         authorPost: authorPostName,
         status: 'En attente',
         timestamp: Date.now()
       }, (error) => {
         if (!error) {
+          // Notification aux leaders (Président / Vice-Président)
           db.ref('notifications').push({
             title: "📋 Nouveau projet à valider",
             body: `Le ministère de [${authorPostName}] (${currentProfile.name}) a soumis le projet : "${title}".`,
             target: 'leaders',
             timestamp: Date.now()
-          });
+          }).catch(err => console.error("Erreur notif projet :", err));
 
           alert("Projet soumis avec succès ! Le Président et le Vice-Président ont été notifiés.");
-          document.getElementById('projTitle').value = '';
-          document.getElementById('projDesc').value = '';
+          titleEl.value = '';
+          descEl.value = '';
         } else {
           alert("Erreur lors de la soumission : " + error.message);
         }
@@ -1841,39 +1853,50 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
     function renderProjects() {
       const container = document.getElementById('projectsList');
-      const filterMonth = document.getElementById('projectMonthFilter').value;
       if (!container) return;
 
-      let arr = Object.entries(projectsList);
+      const filterMonthEl = document.getElementById('projectMonthFilter');
+      const filterMonth = filterMonthEl ? filterMonthEl.value : '';
+
+      const rawProjects = typeof projectsList !== 'undefined' ? projectsList : {};
+      let arr = Object.entries(rawProjects);
+      
       if (filterMonth) {
         arr = arr.filter(([k, p]) => p.month === filterMonth);
       }
 
       if (!arr.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun projet trouvé pour cette période.</p>';
+        container.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:15px;">Aucun projet trouvé pour cette période.</p>';
         return;
       }
 
       let html = '';
       arr.forEach(([key, p]) => {
-        let statusColor = p.status === 'Validé' ? '#27ae60' : (p.status === 'Rejeté' ? '#e74c3c' : '#e67e22');
+        const status = p.status || 'En attente';
+        let statusColor = status === 'Validé' ? '#27ae60' : (status === 'Rejeté' ? '#e74c3c' : '#e67e22');
         let actions = '';
 
-        if (currentProfile && isLeader(currentProfile)) {
+        if (currentProfile && typeof isLeader === 'function' && isLeader(currentProfile)) {
           actions = `
             <div style="margin-top:10px; display:flex; gap:8px;">
-              <button class="btn-promote" onclick="updateProjectStatus('${key}', 'Validé')" style="width:auto; padding:6px 12px; margin:0;">✅ Valider</button>
-              <button class="btn-danger" onclick="updateProjectStatus('${key}', 'Rejeté')" style="width:auto; padding:6px 12px; margin:0;">❌ Rejeter</button>
+              <button class="btn-promote" onclick="updateProjectStatus('${key}', 'Validé')" style="width:auto; padding:6px 12px; margin:0; background:#27ae60; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:0.85rem;">✅ Valider</button>
+              <button class="btn-danger" onclick="updateProjectStatus('${key}', 'Rejeté')" style="width:auto; padding:6px 12px; margin:0; background:#e74c3c; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:0.85rem;">❌ Rejeter</button>
             </div>
           `;
         }
 
+        const projTitle = p.title || 'Sans titre';
+        const projMonth = p.month || '';
+        const authorName = p.authorName || 'Inconnu';
+        const authorPost = p.authorPost || 'Ministère';
+        const projDesc = p.desc || '';
+
         html += `
-          <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid ${statusColor}; border-radius:8px;">
-            <strong>${p.title}</strong> <small style="color:var(--light-text);">(${p.month})</small><br>
-            <small>Ministère : <strong>${p.authorName}</strong> (${p.authorPost})</small>
-            <p style="margin:5px 0;">${p.desc}</p>
-            <div>Statut : <span style="font-weight:600; color:${statusColor};">${p.status}</span></div>
+          <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid ${statusColor}; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <strong style="color:var(--primary);">${projTitle}</strong> <small style="color:var(--light-text);">(${projMonth})</small><br>
+            <small style="color:#555;">Ministère : <strong>${authorName}</strong> (${authorPost})</small>
+            <p style="margin:6px 0; font-size:0.9rem; color:#2d3748;">${projDesc}</p>
+            <div style="font-size:0.85rem;">Statut : <span style="font-weight:600; color:${statusColor};">${status}</span></div>
             ${actions}
           </div>
         `;
@@ -1883,37 +1906,45 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     }
 
     function updateProjectStatus(key, status) {
-      db.ref('projects/' + key).update({ status }, (error) => {
-        if (!error) {
-          alert(`Le projet a été marqué comme : ${status}`);
-        }
-      });
+      if (confirm(`Voulez-vous vraiment marquer ce projet comme "${status}" ?`)) {
+        db.ref('projects/' + key).update({ status }, (error) => {
+          if (!error) {
+            alert(`Le projet a été marqué comme : ${status}`);
+          } else {
+            alert("Erreur lors de la mise à jour du statut.");
+          }
+        });
+      }
     }
-
     /* MESSAGERIE PRIVÉE (DM) */
     function renderDmContacts() {
       const container = document.getElementById('dmContactsList');
       if (!container || !currentProfile || currentProfile.role !== 'admin') return;
 
+      const rawUsers = typeof usersList !== 'undefined' ? usersList : {};
       let html = '';
-      for (let id in usersList) {
+
+      for (let id in rawUsers) {
         if (id === currentProfile.id) continue;
-        const u = usersList[id];
-        if (u.role === 'admin') {
-          let badge = ` <span style="background:var(--secondary); color:#2c3e50; font-size:0.65rem; padding:1px 5px; border-radius:4px;">⚙️ ${u.adminPost || 'Admin'}</span>`;
+        const u = rawUsers[id];
+        if (u && u.role === 'admin') {
+          const postName = u.adminPost || 'Admin';
           html += `
-            <div onclick="selectDmUser('${id}', '${u.name}')" style="padding:8px; cursor:pointer; border-bottom:1px solid #eee; border-radius:4px; margin-bottom:4px; background:#fff;">
-              👤 <strong>${u.name}</strong>${badge}
+            <div onclick="selectDmUser('${id}', '${u.name || 'Admin'}')" style="padding:8px; cursor:pointer; border-bottom:1px solid #eee; border-radius:4px; margin-bottom:4px; background:#fff; transition:background 0.2s;">
+              👤 <strong>${u.name || 'Inconnu'}</strong> <span style="background:var(--secondary); color:#2c3e50; font-size:0.65rem; padding:1px 5px; border-radius:4px;">⚙️ ${postName}</span>
             </div>
           `;
         }
       }
-      container.innerHTML = html || '<p style="font-size:0.8rem; color:var(--light-text);">Aucun autre administrateur.</p>';
+      container.innerHTML = html || '<p style="font-size:0.8rem; color:var(--light-text); text-align:center; padding:10px;">Aucun autre administrateur.</p>';
     }
 
     function selectDmUser(userId, userName) {
       activeDmUser = userId;
-      document.getElementById('dmChatHeader').innerText = `Discussion privée avec ${userName}`;
+      const headerEl = document.getElementById('dmChatHeader');
+      if (headerEl) {
+        headerEl.innerText = `Discussion privée avec ${userName}`;
+      }
       renderDmConversation(userId);
     }
 
@@ -1921,24 +1952,33 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       const box = document.getElementById('dmMessagesBox');
       if (!box || !currentProfile) return;
 
-      const msgs = Object.values(dmMessagesList);
-      const filtered = msgs.filter(m => (m.sender === currentProfile.id && m.receiver === otherUserId) || (m.sender === otherUserId && m.receiver === currentProfile.id));
-      filtered.sort((a,b) => a.timestamp - b.timestamp);
+      const rawDms = typeof dmMessagesList !== 'undefined' ? dmMessagesList : {};
+      const msgs = Object.values(rawDms);
+      
+      const filtered = msgs.filter(m => 
+        (m.sender === currentProfile.id && m.receiver === otherUserId) || 
+        (m.sender === otherUserId && m.receiver === currentProfile.id)
+      );
+      
+      filtered.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
       let html = '';
       filtered.forEach(m => {
-        let isMe = m.sender === currentProfile.id;
-        let bg = isMe ? '#d1e7dd' : '#f8d7da';
-        let align = isMe ? 'text-align:right;' : 'text-align:left;';
+        const isMe = m.sender === currentProfile.id;
+        const bg = isMe ? '#d1e7dd' : '#f8d7da';
+        const align = isMe ? 'text-align:right;' : 'text-align:left;';
+        const msgText = m.text || '';
+
         html += `
           <div style="margin-bottom:6px; ${align}">
-            <div style="display:inline-block; background:${bg}; padding:6px 10px; border-radius:8px; font-size:0.85rem; max-width:80%; text-align:left;">
-              ${m.text}
+            <div style="display:inline-block; background:${bg}; padding:6px 10px; border-radius:8px; font-size:0.85rem; max-width:80%; text-align:left; color:#2d3748; word-break:break-word;">
+              ${msgText}
             </div>
           </div>
         `;
       });
-      box.innerHTML = html || '<p style="color:var(--light-text); font-size:0.8rem; text-align:center;">Envoyez votre premier message confidentiel.</p>';
+
+      box.innerHTML = html || '<p style="color:var(--light-text); font-size:0.8rem; text-align:center; padding:20px;">Envoyez votre premier message confidentiel.</p>';
       box.scrollTop = box.scrollHeight;
     }
 
@@ -1949,6 +1989,8 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         return;
       }
       const input = document.getElementById('dmInput');
+      if (!input) return;
+
       const text = input.value.trim();
       if (!text) return;
 
@@ -1957,13 +1999,19 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         receiver: activeDmUser,
         text,
         timestamp: Date.now()
+      }).then(() => {
+        input.value = '';
+      }).catch(err => {
+        console.error("Erreur envoi DM :", err);
+        alert("Erreur lors de l'envoi du message privé.");
       });
-
-      input.value = '';
     }
 
     function loadAdminStats() {
-      const usersArray = Object.values(usersList);
+      const rawUsers = typeof usersList !== 'undefined' ? usersList : {};
+      const rawLogins = typeof loginsList !== 'undefined' ? loginsList : {};
+
+      const usersArray = Object.values(rawUsers);
       const statInscritsEl = document.getElementById('statInscrits');
       const statConnectesEl = document.getElementById('statConnectes');
       
@@ -1973,7 +2021,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       
       if (statConnectesEl) {
         const today = new Date().toISOString().split('T')[0];
-        const loginsArray = Object.values(loginsList);
+        const loginsArray = Object.values(rawLogins);
         const todayLogins = loginsArray.filter(l => l.date === today).length;
         statConnectesEl.innerText = todayLogins;
       }
@@ -1983,46 +2031,63 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       const container = document.getElementById('adminReportsList');
       if (!container) return;
 
-      const entries = Object.entries(reportsList);
+      const rawReports = typeof reportsList !== 'undefined' ? reportsList : {};
+      const entries = Object.entries(rawReports);
+      
       if (!entries.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun signalement en attente.</p>';
+        container.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:15px;">Aucun signalement en attente.</p>';
         return;
       }
 
       let html = '';
       entries.forEach(([repKey, rep]) => {
+        const sender = rep.sender || 'Inconnu';
+        const text = rep.text || '';
+        const reportedBy = rep.reportedBy || 'Anonyme';
+        const msgKey = rep.msgKey || '';
+
         html += `
-          <div class="manage-item">
-            <strong>Message de ${rep.sender} :</strong> "${rep.text}"<br>
-            <small style="color:var(--light-text);">Signalisé par : ${rep.reportedBy}</small><br>
-            <button class="btn-danger" onclick="deleteReportedMsg('${rep.msgKey}', '${repKey}')">🗑️ Supprimer le message du forum</button>
-            <button class="btn-gold" style="padding: 4px 8px; font-size:0.75rem; width:auto;" onclick="ignoreReport('${repKey}')">✅ Ignorer</button>
+          <div class="manage-item" style="background:#fff; padding:12px; margin-bottom:10px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <strong>Message de ${sender} :</strong> "${text}"<br>
+            <small style="color:var(--light-text);">Signalé par : ${reportedBy}</small><br>
+            <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn-danger" onclick="deleteReportedMsg('${msgKey}', '${repKey}')" style="background:#e53e3e; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:0.75rem;">🗑️ Supprimer du forum</button>
+              <button class="btn-gold" style="background:#d69e2e; color:#fff; border:none; padding: 5px 10px; font-size:0.75rem; border-radius:4px; cursor:pointer;" onclick="ignoreReport('${repKey}')">✅ Ignorer</button>
+            </div>
           </div>
         `;
       });
 
       container.innerHTML = html;
     }
-
-    function deleteReportedMsg(msgKey, repKey) {
+   function deleteReportedMsg(msgKey, repKey) {
       if (confirm("Supprimer ce message du forum ?")) {
-        db.ref('messages/' + msgKey).remove();
-        db.ref('reports/' + repKey).remove();
+        const promises = [];
+        if (msgKey) promises.push(db.ref('messages/' + msgKey).remove());
+        if (repKey) promises.push(db.ref('reports/' + repKey).remove());
+        
+        Promise.all(promises).catch(err => {
+          console.error("Erreur suppression signalement :", err);
+        });
       }
     }
 
     function ignoreReport(repKey) {
-      db.ref('reports/' + repKey).remove();
+      if (!repKey) return;
+      db.ref('reports/' + repKey).remove().catch(err => {
+        console.error("Erreur ignorer signalement :", err);
+      });
     }
 
     function renderAdminStudents() {
       const container = document.getElementById('adminStudentsList');
       if (!container) return;
 
-      const entries = Object.entries(usersList);
+      const rawUsers = typeof usersList !== 'undefined' ? usersList : {};
+      const entries = Object.entries(rawUsers);
 
       if (!entries.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun utilisateur inscrit pour le moment.</p>';
+        container.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:15px;">Aucun utilisateur inscrit pour le moment.</p>';
         return;
       }
 
@@ -2030,21 +2095,29 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       let html = '';
 
       levels.forEach(lvl => {
-        const list = entries.filter(([key, u]) => u.level === lvl);
+        const list = entries.filter(([key, u]) => u && u.level === lvl);
         if (list.length > 0) {
           const title = lvl === 'ADMIN' ? '⚙️ Administrateurs BDE' : (lvl === 'Alumni' ? '🎓 Alumni (Anciens Élèves)' : `🎓 Niveau ${lvl}`);
-          html += `<div class="level-group">`;
-          html += `<div class="level-title">${title} (${list.length})</div>`;
+          html += `<div class="level-group" style="margin-bottom:15px;">`;
+          html += `<div class="level-title" style="font-weight:600; color:var(--primary); margin-bottom:8px; border-bottom:2px solid var(--secondary); padding-bottom:4px;">${title} (${list.length})</div>`;
+          
           list.forEach(([key, st]) => {
-            const majorText = st.major ? `<span class="major-badge">${st.major}</span>` : '';
-            const adminPostText = st.adminPost ? ` <span style="background:var(--secondary); color:#2c3e50; font-size:0.7rem; padding:1px 6px; border-radius:4px;">[${st.adminPost}]</span>` : '';
-            const promoteBtn = st.role !== 'admin' && st.level !== 'Alumni' ? `<button class="btn-promote" onclick="promoteStudentLevel('${key}')">🎓 Passage Supérieur</button>` : '';
+            const name = st.name || 'Inconnu';
+            const username = st.username || '';
+            const major = st.major || '';
+            const role = st.role || '';
+            const adminPost = st.adminPost || '';
+
+            const majorText = major ? `<span class="major-badge" style="background:#edf2f7; padding:2px 6px; border-radius:4px; font-size:0.75rem; color:#4a5568;">${major}</span>` : '';
+            const adminPostText = adminPost ? ` <span style="background:var(--secondary); color:#2c3e50; font-size:0.7rem; padding:1px 6px; border-radius:4px;">[${adminPost}]</span>` : '';
+            const promoteBtn = role !== 'admin' && lvl !== 'Alumni' ? `<button class="btn-promote" onclick="promoteStudentLevel('${key}')" style="background:#319795; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem;">🎓 Passage Supérieur</button>` : '';
+
             html += `
-              <div class="student-item">
-                <span>👤 <strong>${st.name}</strong>${adminPostText} (@${st.username}) ${majorText}</span>
-                <div>
+              <div class="student-item" style="background:#fff; padding:10px; margin-bottom:6px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                <div style="font-size:0.9rem;">👤 <strong>${name}</strong>${adminPostText} <span style="color:#718096; font-size:0.8rem;">(@${username})</span> ${majorText}</div>
+                <div style="display:flex; gap:6px; align-items:center;">
                   ${promoteBtn}
-                  <button class="btn-danger" style="margin:0;" onclick="deleteStudent('${key}')">🗑️ Supprimer</button>
+                  <button class="btn-danger" style="margin:0; background:#e53e3e; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:0.75rem;" onclick="deleteStudent('${key}')">🗑️ Supprimer</button>
                 </div>
               </div>
             `;
@@ -2053,15 +2126,16 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         }
       });
 
-      container.innerHTML = html || '<p style="color:var(--light-text);">Aucun utilisateur enregistré.</p>';
+      container.innerHTML = html || '<p style="color:var(--light-text); text-align:center; padding:15px;">Aucun utilisateur enregistré.</p>';
     }
 
     function promoteStudentLevel(userKey) {
-      const student = usersList[userKey];
+      const rawUsers = typeof usersList !== 'undefined' ? usersList : {};
+      const student = rawUsers[userKey];
       if (!student) return;
 
       let nextLevel = student.level;
-      const major = student.major;
+      const major = student.major || '';
 
       if (major === "Gestion des Entreprises" || major === "Transport & Logistique") {
         if (student.level === "L1") nextLevel = "L2";
@@ -2081,19 +2155,21 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       }
 
       if (nextLevel === student.level) {
-        alert(`${student.name} est déjà au niveau maximum (${student.level}).`);
+        alert(`${student.name || 'Cet étudiant'} est déjà au niveau maximum (${student.level}).`);
         return;
       }
 
-      if (confirm(`Faire passer ${student.name} (${major}) de ${student.level} à ${nextLevel} ?`)) {
+      if (confirm(`Faire passer ${student.name || 'l\'étudiant'} (${major || 'Tronc commun'}) de ${student.level} à ${nextLevel} ?`)) {
         db.ref('users/' + userKey).update({ level: nextLevel }, (error) => {
           if (!error) {
             alert(`Niveau mis à jour avec succès : ${nextLevel}`);
-            if (currentProfile && currentProfile.id === userKey) {
+            if (typeof currentProfile !== 'undefined' && currentProfile && currentProfile.id === userKey) {
               currentProfile.level = nextLevel;
               localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
-              checkUserSession();
+              if (typeof checkUserSession === 'function') checkUserSession();
             }
+          } else {
+            alert("Erreur lors de la mise à jour du niveau.");
           }
         });
       }
@@ -2101,42 +2177,71 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
     function deleteStudent(userKey) {
       if (confirm("Supprimer définitivement cet utilisateur de la plateforme ?")) {
-        db.ref('users/' + userKey).remove();
+        db.ref('users/' + userKey).remove().catch(err => {
+          console.error("Erreur suppression utilisateur :", err);
+        });
       }
     }
 
     function renderAdminSuggestions() {
       const container = document.getElementById('adminSuggestionsList');
-      const suggs = Object.values(suggestionsList);
-      suggs.sort((a,b) => b.timestamp - a.timestamp);
+      if (!container) return;
 
-      container.innerHTML = suggs.length ? '' : '<p style="color:var(--light-text);">Aucune suggestion reçue.</p>';
+      const rawSuggestions = typeof suggestionsList !== 'undefined' ? suggestionsList : {};
+      const suggs = Object.values(rawSuggestions);
+      suggs.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+      if (!suggs.length) {
+        container.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:15px;">Aucune suggestion reçue.</p>';
+        return;
+      }
+
+      let html = '';
       suggs.forEach(s => {
-        container.innerHTML += `
-          <div class="suggestion-item">
-            <strong>${s.title}</strong> <small>par ${s.author} - ${s.date}</small>
-            <p style="margin: 5px 0 0 0;">${s.content}</p>
+        const title = s.title || 'Sans titre';
+        const author = s.author || 'Anonyme';
+        const date = s.date || '';
+        const content = s.content || '';
+
+        html += `
+          <div class="suggestion-item" style="background:#fff; padding:12px; margin-bottom:10px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <strong style="color:var(--primary);">${title}</strong> <small style="color:var(--light-text);">par ${author} - ${date}</small>
+            <p style="margin: 6px 0 0 0; font-size:0.9rem; color:#2d3748;">${content}</p>
           </div>
         `;
       });
+
+      container.innerHTML = html;
+    }
+// --- FONCTION UTILITAIRE DE VÉRIFICATION DES DROITS ---
+    function checkAdminAuth() {
+      const user = typeof currentProfile !== 'undefined' ? currentProfile : JSON.parse(localStorage.getItem('ehes_user') || '{}');
+      if (!user || user.role !== 'admin') {
+        alert("Accès refusé : Vous devez être administrateur pour effectuer cette action.");
+        return false;
+      }
+      return true;
     }
 
+    // --- GESTION ET SUPPRESSION DES COURS ---
     function renderAdminCoursesManage() {
       const container = document.getElementById('adminManageCoursesList');
       if (!container) return;
 
-      const entries = Object.entries(coursesList);
+      const rawCourses = typeof coursesList !== 'undefined' ? coursesList : {};
+      const entries = Object.entries(rawCourses);
+
       if (!entries.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun cours à gérer.</p>';
+        container.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:10px;">Aucun cours à gérer.</p>';
         return;
       }
 
       let html = '';
       entries.forEach(([key, course]) => {
         html += `
-          <div class="manage-item">
-            <strong>${course.title}</strong> — <small>${course.major || 'Général'} (${course.level})</small><br>
-            <button class="btn-danger" onclick="deleteCourse('${key}')">🗑️ Supprimer ce cours</button>
+          <div class="manage-item" style="background:#fff; padding:10px; margin-bottom:8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div><strong>${course.title || 'Sans titre'}</strong> — <small style="color:#666;">${course.major || 'Général'} (${course.level || 'Tous'})</small></div>
+            <button class="btn-danger" style="background:#e53e3e; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:0.8rem;" onclick="deleteCourse('${key}')">🗑️ Supprimer</button>
           </div>
         `;
       });
@@ -2145,27 +2250,36 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     }
 
     function deleteCourse(courseKey) {
-      if (confirm("Supprimer ce cours ?")) {
-        db.ref('courses/' + courseKey).remove();
+      if (!checkAdminAuth()) return;
+      if (confirm("Voulez-vous vraiment supprimer ce cours ?")) {
+        db.ref('courses/' + courseKey).remove().then(() => {
+          console.log("Cours supprimé avec succès.");
+        }).catch(err => {
+          console.error("Erreur suppression cours :", err);
+          alert("Erreur lors de la suppression du cours.");
+        });
       }
     }
 
+    // --- GESTION ET SUPPRESSION DES ANNONCES (POSTS) ---
     function renderAdminPostsManage() {
       const container = document.getElementById('adminManagePostsList');
       if (!container) return;
 
-      const entries = Object.entries(postsList);
+      const rawPosts = typeof postsList !== 'undefined' ? postsList : {};
+      const entries = Object.entries(rawPosts);
+
       if (!entries.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucune annonce à gérer.</p>';
+        container.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:10px;">Aucune annonce à gérer.</p>';
         return;
       }
 
       let html = '';
       entries.forEach(([key, post]) => {
         html += `
-          <div class="manage-item">
-            <strong>${post.title}</strong><br>
-            <button class="btn-danger" onclick="deletePost('${key}')">🗑️ Supprimer l'annonce</button>
+          <div class="manage-item" style="background:#fff; padding:10px; margin-bottom:8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div><strong>${post.title || 'Sans titre'}</strong></div>
+            <button class="btn-danger" style="background:#e53e3e; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:0.8rem;" onclick="deletePost('${key}')">🗑️ Supprimer</button>
           </div>
         `;
       });
@@ -2174,27 +2288,34 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     }
 
     function deletePost(postKey) {
-      if (confirm("Supprimer cette annonce ?")) {
-        db.ref('posts/' + postKey).remove();
+      if (!checkAdminAuth()) return;
+      if (confirm("Voulez-vous vraiment supprimer cette annonce ?")) {
+        db.ref('posts/' + postKey).remove().catch(err => {
+          console.error("Erreur suppression annonce :", err);
+          alert("Erreur lors de la suppression de l'annonce.");
+        });
       }
     }
 
+    // --- GESTION ET SUPPRESSION DES LIVRES ---
     function renderAdminBooksManage() {
       const container = document.getElementById('adminManageBooksList');
       if (!container) return;
 
-      const entries = Object.entries(booksList);
+      const rawBooks = typeof booksList !== 'undefined' ? booksList : {};
+      const entries = Object.entries(rawBooks);
+
       if (!entries.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun livre à gérer.</p>';
+        container.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:10px;">Aucun livre à gérer.</p>';
         return;
       }
 
       let html = '';
       entries.forEach(([key, book]) => {
         html += `
-          <div class="manage-item">
-            <strong>${book.title}</strong> — <small>${book.author} (${book.major})</small><br>
-            <button class="btn-danger" onclick="deleteBook('${key}')">🗑️ Supprimer ce livre</button>
+          <div class="manage-item" style="background:#fff; padding:10px; margin-bottom:8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div><strong>${book.title || 'Sans titre'}</strong> — <small style="color:#666;">${book.author || 'Inconnu'} (${book.major || 'Général'})</small></div>
+            <button class="btn-danger" style="background:#e53e3e; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:0.8rem;" onclick="deleteBook('${key}')">🗑️ Supprimer</button>
           </div>
         `;
       });
@@ -2203,27 +2324,34 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     }
 
     function deleteBook(bookKey) {
-      if (confirm("Supprimer ce livre ?")) {
-        db.ref('books/' + bookKey).remove();
+      if (!checkAdminAuth()) return;
+      if (confirm("Voulez-vous vraiment supprimer ce livre ?")) {
+        db.ref('books/' + bookKey).remove().catch(err => {
+          console.error("Erreur suppression livre :", err);
+          alert("Erreur lors de la suppression du livre.");
+        });
       }
     }
 
+    // --- GESTION ET SUPPRESSION DES PLANNINGS ---
     function renderAdminSchedulesManage() {
       const container = document.getElementById('adminManageSchedList');
       if (!container) return;
 
-      const entries = Object.entries(schedulesList);
+      const rawSchedules = typeof schedulesList !== 'undefined' ? schedulesList : {};
+      const entries = Object.entries(rawSchedules);
+
       if (!entries.length) {
-        container.innerHTML = '<p style="color:var(--light-text);">Aucun planning à gérer.</p>';
+        container.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:10px;">Aucun planning à gérer.</p>';
         return;
       }
 
       let html = '';
       entries.forEach(([key, sched]) => {
         html += `
-          <div class="manage-item">
-            <strong>${sched.title}</strong> — <small>${sched.major} (${sched.level})</small><br>
-            <button class="btn-danger" onclick="deleteSched('${key}')">🗑️ Supprimer ce planning</button>
+          <div class="manage-item" style="background:#fff; padding:10px; margin-bottom:8px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div><strong>${sched.title || 'Sans titre'}</strong> — <small style="color:#666;">${sched.major || 'Général'} (${sched.level || 'Tous'})</small></div>
+            <button class="btn-danger" style="background:#e53e3e; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:0.8rem;" onclick="deleteSched('${key}')">🗑️ Supprimer</button>
           </div>
         `;
       });
@@ -2232,59 +2360,82 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     }
 
     function deleteSched(schedKey) {
-      if (confirm("Supprimer ce planning ?")) {
-        db.ref('schedules/' + schedKey).remove();
+      if (!checkAdminAuth()) return;
+      if (confirm("Voulez-vous vraiment supprimer ce planning ?")) {
+        db.ref('schedules/' + schedKey).remove().catch(err => {
+          console.error("Erreur suppression planning :", err);
+          alert("Erreur lors de la suppression du planning.");
+        });
       }
     }
 
-    document.getElementById('sendGlobalNotifBtn').addEventListener('click', () => {
-      const title = document.getElementById('adminNotifTitle').value.trim();
-      const body = document.getElementById('adminNotifBody').value.trim();
+    // --- PUBLICATION DE NOTIFICATIONS GLOBALES ---
+    const sendNotifBtn = document.getElementById('sendGlobalNotifBtn');
+    if (sendNotifBtn) {
+      sendNotifBtn.addEventListener('click', () => {
+        if (!checkAdminAuth()) return;
+        const titleInput = document.getElementById('adminNotifTitle');
+        const bodyInput = document.getElementById('adminNotifBody');
+        
+        const title = titleInput ? titleInput.value.trim() : '';
+        const body = bodyInput ? bodyInput.value.trim() : '';
 
-      if (!title || !body) {
-        alert("Veuillez remplir le titre et le contenu de la notification.");
-        return;
-      }
-
-      db.ref('notifications').push({
-        title,
-        body,
-        target: 'all',
-        timestamp: Date.now()
-      });
-
-      alert("Notification envoyée à tous les membres !");
-      document.getElementById('adminNotifTitle').value = '';
-      document.getElementById('adminNotifBody').value = '';
-    });
-
-    document.getElementById('publishPostBtn').addEventListener('click', () => {
-      const title = document.getElementById('postTitle').value.trim();
-      const content = document.getElementById('postContent').value.trim();
-      const fileInput = document.getElementById('postFileInput');
-      const file = fileInput.files[0];
-
-      if (!title || !content) {
-        alert("Veuillez saisir un titre et un contenu.");
-        return;
-      }
-
-      if (file) {
-        if (file.type.startsWith('image/')) {
-          compressAndSaveImage(file, (compressedData) => {
-            savePost(title, content, compressedData, 'image/jpeg');
-          });
-        } else {
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            savePost(title, content, e.target.result, file.type);
-          };
-          reader.readAsDataURL(file);
+        if (!title || !body) {
+          alert("Veuillez remplir le titre et le contenu de la notification.");
+          return;
         }
-      } else {
-        savePost(title, content, null, null);
-      }
-    });
+
+        db.ref('notifications').push({
+          title,
+          body,
+          target: 'all',
+          timestamp: Date.now()
+        }).then(() => {
+          alert("Notification envoyée à tous les membres !");
+          if (titleInput) titleInput.value = '';
+          if (bodyInput) bodyInput.value = '';
+        }).catch(err => {
+          console.error("Erreur envoi notification :", err);
+          alert("Erreur lors de l'envoi de la notification.");
+        });
+      });
+    }
+
+    // --- PUBLICATION D'ANNONCES (POSTS) ---
+    const publishPostBtn = document.getElementById('publishPostBtn');
+    if (publishPostBtn) {
+      publishPostBtn.addEventListener('click', () => {
+        if (!checkAdminAuth()) return;
+        const titleInput = document.getElementById('postTitle');
+        const contentInput = document.getElementById('postContent');
+        const fileInput = document.getElementById('postFileInput');
+
+        const title = titleInput ? titleInput.value.trim() : '';
+        const content = contentInput ? contentInput.value.trim() : '';
+        const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+
+        if (!title || !content) {
+          alert("Veuillez saisir un titre et un contenu.");
+          return;
+        }
+
+        if (file) {
+          if (file.type.startsWith('image/')) {
+            compressAndSaveImage(file, (compressedData) => {
+              savePost(title, content, compressedData, 'image/jpeg');
+            });
+          } else {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              savePost(title, content, e.target.result, file.type);
+            };
+            reader.readAsDataURL(file);
+          }
+        } else {
+          savePost(title, content, null, null);
+        }
+      });
+    }
 
     function compressAndSaveImage(file, callback) {
       const reader = new FileReader();
@@ -2323,87 +2474,137 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         mediaData,
         mediaType,
         timestamp: Date.now()
+      }).then(() => {
+        alert("Annonce optimisée et publiée en ligne !");
+        const t = document.getElementById('postTitle'); if(t) t.value = '';
+        const c = document.getElementById('postContent'); if(c) c.value = '';
+        const f = document.getElementById('postFileInput'); if(f) f.value = '';
+      }).catch(err => {
+        console.error("Erreur publication post :", err);
+        alert("Erreur lors de la publication de l'annonce.");
       });
-      alert("Annonce optimisée et publiée en ligne !");
-      document.getElementById('postTitle').value = '';
-      document.getElementById('postContent').value = '';
-      document.getElementById('postFileInput').value = '';
     }
 
-    document.getElementById('publishCourseBtn').addEventListener('click', () => {
-      const major = document.getElementById('courseMajor').value;
-      const level = document.getElementById('courseLevel').value;
-      const title = document.getElementById('courseTitle').value.trim();
-      const url = document.getElementById('courseDriveUrl').value.trim();
+    // --- PUBLICATION DE COURS ---
+    const publishCourseBtn = document.getElementById('publishCourseBtn');
+    if (publishCourseBtn) {
+      publishCourseBtn.addEventListener('click', () => {
+        if (!checkAdminAuth()) return;
+        const major = document.getElementById('courseMajor') ? document.getElementById('courseMajor').value : '';
+        const level = document.getElementById('courseLevel') ? document.getElementById('courseLevel').value : '';
+        const titleInput = document.getElementById('courseTitle');
+        const urlInput = document.getElementById('courseDriveUrl');
 
-      if (!title || !url) {
-        alert("Veuillez remplir tous les champs.");
-        return;
-      }
+        const title = titleInput ? titleInput.value.trim() : '';
+        const url = urlInput ? urlInput.value.trim() : '';
 
-      db.ref('courses').push({ major, level, title, url });
-      alert(`Cours ajouté pour ${major} - ${level} !`);
-      document.getElementById('courseTitle').value = '';
-      document.getElementById('courseDriveUrl').value = '';
-    });
+        if (!title || !url) {
+          alert("Veuillez remplir tous les champs obligatoires (Titre et Lien).");
+          return;
+        }
 
-    document.getElementById('publishBookBtn').addEventListener('click', () => {
-      const major = document.getElementById('bookMajor').value;
-      const title = document.getElementById('bookTitle').value.trim();
-      const author = document.getElementById('bookAuthor').value.trim();
-      const url = document.getElementById('bookDriveUrl').value.trim();
-
-      if (!title || !url || !author) {
-        alert("Veuillez remplir tous les champs.");
-        return;
-      }
-
-      db.ref('books').push({ major, title, author, url });
-      alert(`Livre "${title}" ajouté à la bibliothèque !`);
-      document.getElementById('bookTitle').value = '';
-      document.getElementById('bookAuthor').value = '';
-      document.getElementById('bookDriveUrl').value = '';
-    });
-
-    document.getElementById('publishSchedBtn').addEventListener('click', () => {
-      const major = document.getElementById('schedMajor').value;
-      const level = document.getElementById('schedLevel').value;
-      const title = document.getElementById('schedTitle').value.trim();
-      const url = document.getElementById('schedDriveUrl').value.trim();
-      const fileInput = document.getElementById('schedFileInput');
-      const file = fileInput ? fileInput.files[0] : null;
-
-      if (!title) {
-        alert("Veuillez préciser au moins le titre du planning.");
-        return;
-      }
-
-      if (file) {
-        compressAndSaveImage(file, (compressedData) => {
-          db.ref('schedules').push({ major, level, title, url, mediaData: compressedData });
-          alert(`Planning / Événement publié avec photo !`);
-          resetSchedForm();
+        db.ref('courses').push({ major, level, title, url }).then(() => {
+          alert(`Cours ajouté pour ${major} - ${level} !`);
+          if (titleInput) titleInput.value = '';
+          if (urlInput) urlInput.value = '';
+        }).catch(err => {
+          console.error("Erreur ajout cours :", err);
+          alert("Erreur lors de l'ajout du cours.");
         });
-      } else {
-        db.ref('schedules').push({ major, level, title, url });
-        alert(`Planning / Événement publié !`);
-        resetSchedForm();
-      }
-    });
+      });
+    }
+
+    // --- PUBLICATION DE LIVRES ---
+    const publishBookBtn = document.getElementById('publishBookBtn');
+    if (publishBookBtn) {
+      publishBookBtn.addEventListener('click', () => {
+        if (!checkAdminAuth()) return;
+        const major = document.getElementById('bookMajor') ? document.getElementById('bookMajor').value : '';
+        const titleInput = document.getElementById('bookTitle');
+        const authorInput = document.getElementById('bookAuthor');
+        const urlInput = document.getElementById('bookDriveUrl');
+
+        const title = titleInput ? titleInput.value.trim() : '';
+        const author = authorInput ? authorInput.value.trim() : '';
+        const url = urlInput ? urlInput.value.trim() : '';
+
+        if (!title || !url || !author) {
+          alert("Veuillez remplir tous les champs.");
+          return;
+        }
+
+        db.ref('books').push({ major, title, author, url }).then(() => {
+          alert(`Livre "${title}" ajouté à la bibliothèque !`);
+          if (titleInput) titleInput.value = '';
+          if (authorInput) authorInput.value = '';
+          if (urlInput) urlInput.value = '';
+        }).catch(err => {
+          console.error("Erreur ajout livre :", err);
+          alert("Erreur lors de l'ajout du livre.");
+        });
+      });
+    }
+
+    // --- PUBLICATION DE PLANNINGS ---
+    const publishSchedBtn = document.getElementById('publishSchedBtn');
+    if (publishSchedBtn) {
+      publishSchedBtn.addEventListener('click', () => {
+        if (!checkAdminAuth()) return;
+        const major = document.getElementById('schedMajor') ? document.getElementById('schedMajor').value : '';
+        const level = document.getElementById('schedLevel') ? document.getElementById('schedLevel').value : '';
+        const titleInput = document.getElementById('schedTitle');
+        const urlInput = document.getElementById('schedDriveUrl');
+        const fileInput = document.getElementById('schedFileInput');
+        const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+
+        const title = titleInput ? titleInput.value.trim() : '';
+        const url = urlInput ? urlInput.value.trim() : '';
+
+        if (!title) {
+          alert("Veuillez préciser au moins le titre du planning.");
+          return;
+        }
+
+        if (file) {
+          compressAndSaveImage(file, (compressedData) => {
+            db.ref('schedules').push({ major, level, title, url, mediaData: compressedData }).then(() => {
+              alert(`Planning / Événement publié avec photo !`);
+              resetSchedForm();
+            });
+          });
+        } else {
+          db.ref('schedules').push({ major, level, title, url }).then(() => {
+            alert(`Planning / Événement publié !`);
+            resetSchedForm();
+          }).catch(err => {
+            console.error("Erreur publication planning :", err);
+            alert("Erreur lors de la publication du planning.");
+          });
+        }
+      });
+    }
 
     function resetSchedForm() {
-      document.getElementById('schedTitle').value = '';
-      document.getElementById('schedDriveUrl').value = '';
-      if (document.getElementById('schedFileInput')) {
-        document.getElementById('schedFileInput').value = '';
-      }
+      const t = document.getElementById('schedTitle'); if(t) t.value = '';
+      const u = document.getElementById('schedDriveUrl'); if(u) u.value = '';
+      const f = document.getElementById('schedFileInput'); if(f) f.value = '';
+    }
+    function resetSchedForm() {
+      const titleInput = document.getElementById('schedTitle');
+      const urlInput = document.getElementById('schedDriveUrl');
+      const fileInput = document.getElementById('schedFileInput');
+
+      if (titleInput) titleInput.value = '';
+      if (urlInput) urlInput.value = '';
+      if (fileInput) fileInput.value = '';
     }
 
+    // --- ENREGISTREMENT DU SERVICE WORKER (PWA) ---
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then((reg) => console.log('Service Worker PWA prêt !', reg.scope))
-          .catch((err) => console.error('Erreur PWA :', err));
+          .then((reg) => console.log('Service Worker PWA prêt ! Scope :', reg.scope))
+          .catch((err) => console.error('Erreur PWA lors de l\'enregistrement :', err));
       });
     }
 
