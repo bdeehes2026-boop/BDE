@@ -589,7 +589,1148 @@
       </div>
     </div>
   </div>
-     
+    <script>
+    // Initialisation au chargement de la page
+    window.onload = function() {
+      updateUI();
+      // Sélectionner l'onglet par défaut (Accueil)
+      switchTab('homeTab');
+      
+      // Mettre le mois en cours par défaut sur l'onglet projets
+      const dateNow = new Date();
+      const year = dateNow.getFullYear();
+      const month = String(dateNow.getMonth() + 1).padStart(2, '0');
+      const monthStr = `${year}-${month}`;
+      if(document.getElementById('projectMonthFilter')) {
+        document.getElementById('projectMonthFilter').value = monthStr;
+      }
+      if(document.getElementById('projTargetMonth')) {
+        document.getElementById('projTargetMonth').value = monthStr;
+      }
+    };
+
+    // Gestion de l'interface et de la navigation par onglets
+    function switchTab(tabId) {
+      const tabs = document.querySelectorAll('.tab-content');
+      tabs.forEach(t => t.classList.add('hidden'));
+
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) targetTab.classList.remove('hidden');
+
+      const navBtns = document.querySelectorAll('.tab-btn');
+      navBtns.forEach(b => b.classList.remove('active'));
+      
+      // Activer le bouton correspondant dans la barre d'onglets si présent
+      navBtns.forEach(b => {
+        if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(tabId)) {
+          b.classList.add('active');
+        }
+      });
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Gestion du menu latéral (Side Drawer) sur mobile
+    function toggleSideDrawer() {
+      const drawer = document.getElementById('sideDrawer');
+      const overlay = document.getElementById('drawerOverlay');
+      if (drawer && overlay) {
+        drawer.classList.toggle('open');
+        overlay.classList.toggle('active');
+      }
+    }
+
+    function closeSideDrawer() {
+      const drawer = document.getElementById('sideDrawer');
+      const overlay = document.getElementById('drawerOverlay');
+      if (drawer && overlay) {
+        drawer.classList.remove('open');
+        overlay.classList.remove('active');
+      }
+    }
+
+    function navigateFromDrawer(tabId) {
+      closeSideDrawer();
+      switchTab(tabId);
+    }
+
+    function navigateAndScroll(sectionId) {
+      closeSideDrawer();
+      switchTab('adminTab');
+      setTimeout(() => {
+        scrollToAdminSection(sectionId);
+      }, 100);
+    }
+
+    function scrollToAdminSection(sectionId) {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.style.backgroundColor = '#fff8dc';
+        setTimeout(() => { el.style.backgroundColor = 'transparent'; }, 1500);
+      }
+    }
+
+    // Basculement entre Connexion et Inscription
+    function toggleAuthMode(event) {
+      if (event) event.preventDefault();
+      isRegisterMode = !isRegisterMode;
+      const title = document.getElementById('authTitle');
+      const submitBtn = document.getElementById('authSubmitBtn');
+      const toggleText = document.getElementById('toggleAuthText');
+      const toggleLink = document.getElementById('toggleAuthLink');
+      const registerFields = document.getElementById('registerFields');
+
+      if (isRegisterMode) {
+        title.innerText = "Créer un compte BDE";
+        submitBtn.innerText = "S'inscrire";
+        toggleText.innerText = "Déjà un compte ?";
+        toggleLink.innerText = "Se connecter";
+        registerFields.classList.remove('hidden');
+      } else {
+        title.innerText = "Espace Connexion";
+        submitBtn.innerText = "Se connecter";
+        toggleText.innerText = "Nouveau sur le portail ?";
+        toggleLink.innerText = "Créer un compte";
+        registerFields.classList.add('hidden');
+      }
+    }
+
+    function toggleRoleFields() {
+      const role = document.getElementById('authRole').value;
+      const studentSection = document.getElementById('studentMajorLevelSection');
+      const adminSection = document.getElementById('adminRoleFields');
+
+      if (role === 'admin') {
+        studentSection.classList.add('hidden');
+        adminSection.classList.remove('hidden');
+      } else {
+        studentSection.classList.remove('hidden');
+        adminSection.classList.add('hidden');
+      }
+    }
+
+    // Gestion de la soumission du formulaire d'authentification
+    function handleAuthSubmit(event) {
+      event.preventDefault();
+      const email = document.getElementById('authUsername').value.trim();
+      const pass = document.getElementById('authPassword').value.trim();
+
+      if (isRegisterMode) {
+        const name = document.getElementById('authName').value.trim();
+        const role = document.getElementById('authRole').value;
+        const code = document.getElementById('authCode').value.trim();
+
+        if (!name || !code) {
+          alert("Veuillez remplir tous les champs et fournir le code d'accès.");
+          return;
+        }
+
+        if (role === 'student' && code !== STUDENT_SECRET_CODE) {
+          alert("Code d'activation étudiant incorrect ! (Indice : EHES2026)");
+          return;
+        }
+        if (role === 'admin' && code !== ADMIN_SECRET_CODE) {
+          alert("Mot de passe administrateur BDE incorrect !");
+          return;
+        }
+
+        let userData = {
+          email: email,
+          name: name,
+          role: role,
+          createdAt: new Date().toISOString()
+        };
+
+        if (role === 'student') {
+          userData.major = document.getElementById('authMajor').value;
+          userData.level = document.getElementById('authLevel').value;
+          if (!userData.major) {
+            alert("Veuillez sélectionner votre filière.");
+            return;
+          }
+        } else {
+          userData.adminPost = document.getElementById('authAdminPost').value;
+        }
+
+        // Sauvegarde dans Firebase sous l'e-mail encodé ou ID unique
+        const safeKey = email.replace(/[.$#[\]/]/g, "_");
+        db.ref('users/' + safeKey).set(userData).then(() => {
+          currentProfile = userData;
+          localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
+          alert("Inscription réussie ! Bienvenue sur le portail.");
+          updateUI();
+          switchTab('homeTab');
+        }).catch(err => {
+          alert("Erreur lors de l'inscription : " + err.message);
+        });
+
+      } else {
+        // Connexion
+        const safeKey = email.replace(/[.$#[\]/]/g, "_");
+        db.ref('users/' + safeKey).once('value').then(snapshot => {
+          const user = snapshot.val();
+          if (user) {
+            // Vérification basique (le mot de passe n'est pas stocké en clair sécurisé dans cet exemple simple, on valide via l'existence)
+            currentProfile = user;
+            localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
+            
+            // Enregistrer la connexion du jour
+            const today = new Date().toISOString().split('T')[0];
+            db.ref('logins/' + today + '/' + safeKey).set(true);
+
+            alert("Connexion réussie !");
+            updateUI();
+            switchTab('homeTab');
+          } else {
+            alert("Aucun compte trouvé avec cet e-mail. Veuillez vous inscrire.");
+          }
+        }).catch(err => {
+          alert("Erreur de connexion : " + err.message);
+        });
+      }
+    }
+
+    // Mise à jour de l'interface selon le profil utilisateur connecté
+    function updateUI() {
+      const authSection = document.getElementById('authSection');
+      const userStatus = document.getElementById('userStatus');
+      const userLevelDisplay = document.getElementById('userLevelDisplay');
+      const welcomeMsg = document.getElementById('welcomeMsg');
+      const adminPcBar = document.getElementById('adminPcBar');
+      const adminProjectsTabBtn = document.getElementById('adminProjectsTabBtn');
+      const dmTabBtn = document.getElementById('dmTabBtn');
+      const drawerProjectsBtn = document.getElementById('drawerProjectsBtn');
+      const drawerDmBtn = document.getElementById('drawerDmBtn');
+      const drawerAdminSection = document.getElementById('drawerAdminSection');
+      const adminTabBtn = document.getElementById('adminTabBtn'); // Si présent
+      const adminNotice = document.getElementById('adminNotice');
+      const adminPanel = document.getElementById('adminPanel');
+      const logoutSection = document.getElementById('logoutSection');
+      const chatGuestWarning = document.getElementById('chatGuestWarning');
+      const chatContainer = document.getElementById('chatContainer');
+
+      if (currentProfile) {
+        authSection.classList.add('hidden');
+        if (logoutSection) logoutSection.classList.remove('hidden');
+        
+        let roleText = currentProfile.role === 'admin' ? `Admin BDE (${currentProfile.adminPost || ''})` : `${currentProfile.major} - ${currentProfile.level}`;
+        userStatus.innerText = `${currentProfile.name} (${roleText})`;
+        userLevelDisplay.innerText = currentProfile.role === 'admin' ? "Tous niveaux (Administrateur)" : `${currentProfile.major} (${currentProfile.level})`;
+        welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
+
+        if (chatGuestWarning) chatGuestWarning.classList.add('hidden');
+        if (chatContainer) chatContainer.classList.remove('hidden');
+
+        if (currentProfile.role === 'admin') {
+          if (adminPcBar) adminPcBar.classList.remove('hidden');
+          if (adminProjectsTabBtn) adminProjectsTabBtn.classList.remove('hidden');
+          if (dmTabBtn) dmTabBtn.classList.remove('hidden');
+          if (drawerProjectsBtn) drawerProjectsBtn.classList.remove('hidden');
+          if (drawerDmBtn) drawerDmBtn.classList.remove('hidden');
+          if (drawerAdminSection) drawerAdminSection.classList.remove('hidden');
+          if (adminNotice) adminNotice.classList.add('hidden');
+          if (adminPanel) adminPanel.classList.remove('hidden');
+        } else {
+          if (adminPcBar) adminPcBar.classList.add('hidden');
+          if (adminProjectsTabBtn) adminProjectsTabBtn.classList.add('hidden');
+          if (dmTabBtn) dmTabBtn.classList.add('hidden');
+          if (drawerProjectsBtn) drawerProjectsBtn.classList.add('hidden');
+          if (drawerDmBtn) drawerDmBtn.classList.add('hidden');
+          if (drawerAdminSection) drawerAdminSection.classList.add('hidden');
+          if (adminNotice) adminNotice.classList.remove('hidden');
+          if (adminPanel) adminPanel.classList.add('hidden');
+        }
+      } else {
+        authSection.classList.remove('hidden');
+        if (logoutSection) logoutSection.classList.add('hidden');
+        userStatus.innerText = "Visiteur";
+        userLevelDisplay.innerText = "Non connecté";
+        welcomeMsg.innerText = "Connectez-vous pour profiter de toutes les fonctionnalités du BDE.";
+        if (adminPcBar) adminPcBar.classList.add('hidden');
+        if (adminProjectsTabBtn) adminProjectsTabBtn.classList.add('hidden');
+        if (dmTabBtn) dmTabBtn.classList.add('hidden');
+        if (drawerProjectsBtn) drawerProjectsBtn.classList.add('hidden');
+        if (drawerDmBtn) drawerDmBtn.classList.add('hidden');
+        if (drawerAdminSection) drawerAdminSection.classList.add('hidden');
+        if (adminNotice) adminNotice.classList.remove('hidden');
+        if (adminPanel) adminPanel.classList.add('hidden');
+        if (chatGuestWarning) chatGuestWarning.classList.remove('hidden');
+        if (chatContainer) chatContainer.classList.add('hidden');
+      }
+    }
+
+    // Gestion du Profil Modal
+    function openProfileModal() {
+      if (!currentProfile) {
+        alert("Veuillez vous connecter pour voir votre profil.");
+        switchTab('homeTab');
+        return;
+      }
+      document.getElementById('profileName').value = currentProfile.name || '';
+      const studentOnlyDiv = document.getElementById('profileStudentOnly');
+      if (currentProfile.role === 'admin') {
+        studentOnlyDiv.classList.add('hidden');
+      } else {
+        studentOnlyDiv.classList.remove('hidden');
+        document.getElementById('profileMajor').value = currentProfile.major || 'Pétrole et Gaz';
+        document.getElementById('profileLevel').value = currentProfile.level || 'L1';
+      }
+      document.getElementById('profileModal').classList.remove('hidden');
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.add('hidden');
+    }
+
+    // Soumission modification profil
+    const profileForm = document.getElementById('profileForm');
+    if (profileForm) {
+      profileForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!currentProfile) return;
+        currentProfile.name = document.getElementById('profileName').value.trim();
+        if (currentProfile.role !== 'admin') {
+          currentProfile.major = document.getElementById('profileMajor').value;
+          currentProfile.level = document.getElementById('profileLevel').value;
+        }
+        const safeKey = currentProfile.email.replace(/[.$#[\]/]/g, "_");
+        db.ref('users/' + safeKey).set(currentProfile).then(() => {
+          localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
+          alert("Profil mis à jour avec succès !");
+          closeProfileModal();
+          updateUI();
+          renderCourses();
+        }).catch(err => {
+          alert("Erreur : " + err.message);
+        });
+      });
+    }
+
+    // Gestion Déconnexion
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function() {
+        localStorage.removeItem('ehes_user');
+        currentProfile = null;
+        updateUI();
+        alert("Vous êtes déconnecté.");
+        switchTab('homeTab');
+      });
+    }
+
+    // Fonctions de Rendu des Annonces
+    function renderAnnouncements() {
+      const container = document.getElementById('announcementsList');
+      if (!container) return;
+      container.innerHTML = '';
+      
+      const postsKeys = Object.keys(postsList).reverse();
+      if (postsKeys.length === 0) {
+        container.innerHTML = `<p style="color:var(--light-text); font-size:0.9rem;">Aucune annonce pour le moment.</p>`;
+        return;
+      }
+
+      postsKeys.forEach(key => {
+        const post = postsList[key];
+        const dateFormatted = new Date(post.timestamp).toLocaleDateString();
+        let mediaHtml = '';
+        if (post.mediaUrl) {
+          if (post.mediaType && post.mediaType.startsWith('video')) {
+            mediaHtml = `<video controls class="feed-media"><source src="${post.mediaUrl}" type="${post.mediaType}"></video>`;
+          } else {
+            mediaHtml = `<img src="${post.mediaUrl}" alt="Media annonce" class="feed-media">`;
+          }
+        }
+
+        const item = document.createElement('div');
+        item.className = 'feed-item';
+        item.innerHTML = `
+          <div class="feed-header">
+            <span class="feed-title">${post.title}</span>
+            <span class="feed-date">${dateFormatted}</span>
+          </div>
+          <p style="margin:6px 0; font-size:0.9rem; line-height:1.4;">${post.content}</p>
+          ${mediaHtml}
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // Fonctions de Rendu des Cours
+    function renderCourses() {
+      const container = document.getElementById('coursesList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const filterMajor = document.getElementById('filterMajor').value;
+      const searchQuery = document.getElementById('searchCourseInput').value.toLowerCase();
+
+      const keys = Object.keys(coursesList);
+      let count = 0;
+
+      keys.forEach(key => {
+        const course = coursesList[key];
+        
+        // Filtrage par filière et recherche textuelle
+        if (filterMajor !== 'ALL' && course.major !== filterMajor) return;
+        if (searchQuery && !course.title.toLowerCase().includes(searchQuery)) return;
+
+        // Si l'utilisateur est étudiant, on peut filtrer par son niveau par défaut ou laisser voir
+        count++;
+        const item = document.createElement('div');
+        item.className = 'feed-item';
+        item.innerHTML = `
+          <div class="feed-header">
+            <span class="feed-title">${course.title}</span>
+            <span class="feed-date">${course.major} (${course.level})</span>
+          </div>
+          <a href="${course.driveUrl}" target="_blank" class="drive-link">📥 Accéder au document (Drive)</a>
+        `;
+        container.appendChild(item);
+      });
+
+      if (count === 0) {
+        container.innerHTML = `<p style="color:var(--light-text); font-size:0.9rem; text-align:center; padding:15px;">Aucun cours trouvé pour ces critères.</p>`;
+      }
+    }
+
+    // Fonctions de Rendu de la Bibliothèque
+    function renderBiblio() {
+      const container = document.getElementById('biblioList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const filterMajor = document.getElementById('biblioFilterMajor').value;
+      const searchQuery = document.getElementById('searchBiblioInput').value.toLowerCase();
+
+      const keys = Object.keys(booksList);
+      let count = 0;
+
+      keys.forEach(key => {
+        const book = booksList[key];
+        if (filterMajor !== 'ALL' && book.major !== filterMajor) return;
+        if (searchQuery && !book.title.toLowerCase().includes(searchQuery) && !book.author.toLowerCase().includes(searchQuery)) return;
+
+        count++;
+        const item = document.createElement('div');
+        item.className = 'feed-item';
+        item.innerHTML = `
+          <div class="feed-header">
+            <span class="feed-title">${book.title}</span>
+            <span class="feed-date">${book.major}</span>
+          </div>
+          <p style="margin:4px 0; font-size:0.85rem; color:var(--light-text);">Auteur : <strong>${book.author}</strong></p>
+          <a href="${book.driveUrl}" target="_blank" class="drive-link">📖 Lire / Télécharger le livre</a>
+        `;
+        container.appendChild(item);
+      });
+
+      if (count === 0) {
+        container.innerHTML = `<p style="color:var(--light-text); font-size:0.9rem; text-align:center; padding:15px;">Aucun ouvrage trouvé.</p>`;
+      }
+    }
+
+    // Fonctions de Rendu des Plannings
+    function renderSchedules() {
+      const container = document.getElementById('scheduleList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const keys = Object.keys(schedulesList);
+      if (keys.length === 0) {
+        container.innerHTML = `<p style="color:var(--light-text); font-size:0.9rem;">Aucun planning publié pour le moment.</p>`;
+        return;
+      }
+
+      keys.forEach(key => {
+        const sched = schedulesList[key];
+        let mediaHtml = sched.mediaUrl ? `<img src="${sched.mediaUrl}" alt="Planning" class="feed-media">` : '';
+        let linkHtml = sched.driveUrl ? `<a href="${sched.driveUrl}" target="_blank" class="drive-link" style="margin-right:8px;">🔗 Lien externe</a>` : '';
+
+        const item = document.createElement('div');
+        item.className = 'feed-item';
+        item.innerHTML = `
+          <div class="feed-header">
+            <span class="feed-title">${sched.title}</span>
+            <span class="feed-date">${sched.major} (${sched.level})</span>
+          </div>
+          ${linkHtml}
+          ${mediaHtml}
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // Forum & Chat
+    function renderChat() {
+      const chatBox = document.getElementById('chatBox');
+      if (!chatBox) return;
+      chatBox.innerHTML = '';
+
+      const keys = Object.keys(messagesList);
+      if (keys.length === 0) {
+        chatBox.innerHTML = `<p style="color:var(--light-text); font-size:0.85rem; text-align:center;">Soyez le premier à lancer la discussion !</p>`;
+        return;
+      }
+
+      keys.forEach(key => {
+        const msg = messagesList[key];
+        const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const div = document.createElement('div');
+        div.className = 'chat-msg';
+        div.innerHTML = `
+          <strong>${msg.userName}</strong> <span class="chat-time">${timeStr}</span>
+          <p style="margin:5px 0 0 0; font-size:0.88rem;">${msg.text}</p>
+          <button onclick="reportMessage('${key}')" style="background:none; border:none; color:#e74c3c; font-size:0.75rem; cursor:pointer; padding:0; margin-top:4px; box-shadow:none; width:auto;">🚩 Signaler</button>
+        `;
+        chatBox.appendChild(div);
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    const chatForm = document.getElementById('chatForm');
+    if (chatForm) {
+      chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!currentProfile) {
+          alert("Veuillez vous connecter pour participer au forum.");
+          return;
+        }
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const newMsg = {
+          userName: currentProfile.name,
+          userEmail: currentProfile.email,
+          text: text,
+          timestamp: Date.now()
+        };
+
+        db.ref('messages').push(newMsg).then(() => {
+          input.value = '';
+        }).catch(err => {
+          alert("Erreur d'envoi : " + err.message);
+        });
+      });
+    }
+
+    function reportMessage(msgKey) {
+      if (!currentProfile) {
+        alert("Connectez-vous pour signaler un message.");
+        return;
+      }
+      if (confirm("Voulez-vous vraiment signaler ce message aux administrateurs du BDE ?")) {
+        db.ref('reports/' + msgKey).set({
+          reportedBy: currentProfile.email,
+          messageKey: msgKey,
+          timestamp: Date.now()
+        }).then(() => {
+          alert("Message signalé. Un administrateur va vérifier le contenu.");
+        });
+      }
+    }
+
+    function cleanOldMessages() {
+      // Nettoyage automatique des messages de plus de 48h par exemple
+      const now = Date.now();
+      const limit = 48 * 60 * 60 * 1000;
+      Object.keys(messagesList).forEach(key => {
+        if (now - messagesList[key].timestamp > limit) {
+          db.ref('messages/' + key).remove();
+        }
+      });
+    }
+
+    // Suggestions
+    const suggestForm = document.getElementById('suggestForm');
+    if (suggestForm) {
+      suggestForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!currentProfile) {
+          alert("Veuillez vous connecter pour envoyer une suggestion.");
+          return;
+        }
+        const title = document.getElementById('suggestTitle').value.trim();
+        const content = document.getElementById('suggestContent').value.trim();
+        const isAnon = document.getElementById('suggestAnon').checked;
+
+        db.ref('suggestions').push({
+          title: title,
+          content: content,
+          author: isAnon ? "Anonyme" : currentProfile.name,
+          timestamp: Date.now()
+        }).then(() => {
+          alert("Suggestion envoyée avec succès au BDE ! Merci.");
+          suggestForm.reset();
+        }).catch(err => {
+          alert("Erreur : " + err.message);
+        });
+      });
+    }
+
+    // Gestion Projets BDE (Admin)
+    function submitProject() {
+      if (!currentProfile || currentProfile.role !== 'admin') return;
+      const title = document.getElementById('projTitle').value.trim();
+      const desc = document.getElementById('projDesc').value.trim();
+      const month = document.getElementById('projTargetMonth').value;
+
+      if (!title || !desc || !month) {
+        alert("Veuillez remplir tous les champs du projet.");
+        return;
+      }
+
+      // Vérifier la limite de 3 projets par mois pour ce ministère
+      const postName = currentProfile.adminPost || 'Admin';
+      let count = 0;
+      Object.values(projectsList).forEach(p => {
+        if (p.department === postName && p.month === month) {
+          count++;
+        }
+      });
+
+      if (count >= 3) {
+        alert("Vous avez atteint la limite de 3 projets par mois pour votre département.");
+        return;
+      }
+
+      db.ref('projects').push({
+        title: title,
+        description: desc,
+        month: month,
+        department: postName,
+        author: currentProfile.name,
+        status: 'En attente',
+        timestamp: Date.now()
+      }).then(() => {
+        alert("Projet soumis avec succès pour validation !");
+        document.getElementById('projTitle').value = '';
+        document.getElementById('projDesc').value = '';
+      });
+    }
+
+    function renderProjects() {
+      const container = document.getElementById('projectsList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const filterMonth = document.getElementById('projectMonthFilter').value;
+      const keys = Object.keys(projectsList);
+      let count = 0;
+
+      keys.forEach(key => {
+        const proj = projectsList[key];
+        if (filterMonth && proj.month !== filterMonth) return;
+
+        count++;
+        let actionBtns = '';
+        if (currentProfile && currentProfile.role === 'admin' && (currentProfile.adminPost === 'President' || currentProfile.adminPost === 'Vice president')) {
+          actionBtns = `
+            <div style="margin-top:8px;">
+              <button onclick="updateProjectStatus('${key}', 'Validé')" class="btn-promote">Valider</button>
+              <button onclick="updateProjectStatus('${key}', 'Refusé')" class="btn-danger">Refuser</button>
+            </div>
+          `;
+        }
+
+        const item = document.createElement('div');
+        item.className = 'feed-item';
+        item.innerHTML = `
+          <div class="feed-header">
+            <span class="feed-title">${proj.title} (${proj.department})</span>
+            <span class="feed-date">Statut : <strong>${proj.status}</strong></span>
+          </div>
+          <p style="margin:5px 0; font-size:0.9rem;">${proj.description}</p>
+          <span style="font-size:0.78rem; color:var(--light-text);">Proposé par : ${proj.author} pour le mois de ${proj.month}</span>
+          ${actionBtns}
+        `;
+        container.appendChild(item);
+      });
+
+      if (count === 0) {
+        container.innerHTML = `<p style="color:var(--light-text); font-size:0.88rem; text-align:center; padding:10px;">Aucun projet enregistré pour ce mois.</p>`;
+      }
+    }
+
+    function updateProjectStatus(key, status) {
+      db.ref('projects/' + key).update({ status: status }).then(() => {
+        alert(`Projet mis à jour : ${status}`);
+      });
+    }
+
+    // Messagerie Privée (DM) Admin
+    function renderDmContacts() {
+      const container = document.getElementById('dmContactsList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      Object.keys(usersList).forEach(key => {
+        const u = usersList[key];
+        if (currentProfile && u.email === currentProfile.email) return; // Ne pas s'afficher soi-même
+
+        const div = document.createElement('div');
+        div.style.padding = '8px';
+        div.style.cursor = 'pointer';
+        div.style.borderBottom = '1px solid #eee';
+        div.style.fontSize = '0.85rem';
+        div.innerHTML = `<strong>${u.name}</strong><br><span style="font-size:0.75rem; color:var(--light-text);">${u.role === 'admin' ? 'Admin' : u.major}</span>`;
+        div.onclick = () => {
+          activeDmUser = u.email;
+          document.getElementById('dmChatHeader').innerText = `Discussion avec ${u.name}`;
+          renderDmConversation(u.email);
+        };
+        container.appendChild(div);
+      });
+    }
+
+    function renderDmConversation(targetEmail) {
+      const box = document.getElementById('dmMessagesBox');
+      if (!box) return;
+      box.innerHTML = '';
+
+      const safeTarget = targetEmail.replace(/[.$#[\]/]/g, "_");
+      const safeMe = currentProfile.email.replace(/[.$#[\]/]/g, "_");
+
+      // Filtrer et afficher les messages entre les deux utilisateurs
+      const keys = Object.keys(dmMessagesList);
+      keys.forEach(key => {
+        const m = dmMessagesList[key];
+        const isRelevant = (m.sender === safeMe && m.receiver === safeTarget) || (m.sender === safeTarget && m.receiver === safeMe);
+        if (isRelevant) {
+          const div = document.createElement('div');
+          div.style.margin = '6px 0';
+          div.style.padding = '6px 10px';
+          div.style.borderRadius = '6px';
+          div.style.fontSize = '0.85rem';
+          div.style.maxWidth = '80%';
+          
+          if (m.sender === safeMe) {
+            div.style.background = '#e1f5fe';
+            div.style.marginLeft = 'auto';
+          } else {
+            div.style.background = '#f1f8e9';
+            div.style.marginRight = 'auto';
+          }
+          div.innerText = m.text;
+          box.appendChild(div);
+        }
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function sendDmMessage(event) {
+      event.preventDefault();
+      if (!activeDmUser || !currentProfile) return;
+      const input = document.getElementById('dmInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const safeTarget = activeDmUser.replace(/[.$#[\]/]/g, "_");
+      const safeMe = currentProfile.email.replace(/[.$#[\]/]/g, "_");
+
+      db.ref('dm_messages').push({
+        sender: safeMe,
+        receiver: safeTarget,
+        text: text,
+        timestamp: Date.now()
+      }).then(() => {
+        input.value = '';
+      });
+    }
+
+    // Panneau Administration & Statistiques
+    function loadAdminStats() {
+      const statInscrits = document.getElementById('statInscrits');
+      const statConnectes = document.getElementById('statConnectes');
+
+      if (statInscrits) {
+        statInscrits.innerText = Object.keys(usersList).length;
+      }
+      if (statConnectes) {
+        const today = new Date().toISOString().split('T')[0];
+        const todayLogins = loginsList[today] ? Object.keys(loginsList[today]).length : 0;
+        statConnectes.innerText = todayLogins;
+      }
+    }
+
+    // Gestion admin des éléments (Suppressions & ajouts)
+    const publishPostBtn = document.getElementById('publishPostBtn');
+    if (publishPostBtn) {
+      publishPostBtn.addEventListener('click', function() {
+        if (!currentProfile || currentProfile.role !== 'admin') return;
+        const title = document.getElementById('postTitle').value.trim();
+        const content = document.getElementById('postContent').value.trim();
+        const fileInput = document.getElementById('postFileInput');
+
+        if (!title || !content) {
+          alert("Veuillez remplir le titre et le contenu de l'annonce.");
+          return;
+        }
+
+        if (fileInput.files && fileInput.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            savePost(title, content, e.target.result, fileInput.files[0].type);
+          };
+          reader.readAsDataURL(fileInput.files[0]);
+        } else {
+          savePost(title, content, null, null);
+        }
+      });
+    }
+
+    function savePost(title, content, mediaUrl, mediaType) {
+      db.ref('posts').push({
+        title: title,
+        content: content,
+        mediaUrl: mediaUrl || '',
+        mediaType: mediaType || '',
+        timestamp: Date.now()
+      }).then(() => {
+        alert("Annonce publiée avec succès ! (Valide 7 jours)");
+        document.getElementById('postTitle').value = '';
+        document.getElementById('postContent').value = '';
+        document.getElementById('postFileInput').value = '';
+      });
+    }
+
+    // Notification globale par l'admin
+    const sendGlobalNotifBtn = document.getElementById('sendGlobalNotifBtn');
+    if (sendGlobalNotifBtn) {
+      sendGlobalNotifBtn.addEventListener('click', function() {
+        if (!currentProfile || currentProfile.role !== 'admin') return;
+        const title = document.getElementById('adminNotifTitle').value.trim();
+        const body = document.getElementById('adminNotifBody').value.trim();
+
+        if (!title || !body) {
+          alert("Veuillez remplir le titre et le message de la notification.");
+          return;
+        }
+
+        db.ref('notifications').push({
+          title: title,
+          body: body,
+          timestamp: Date.now()
+        }).then(() => {
+          alert("Notification envoyée à tous les membres !");
+          document.getElementById('adminNotifTitle').value = '';
+          document.getElementById('adminNotifBody').value = '';
+        });
+      });
+    }
+
+    // Toggle Panneau Déroulant Notifications
+    function toggleNotificationPanel() {
+      const panel = document.getElementById('notifPanelDropdown');
+      if (panel) {
+        if (panel.style.display === 'block') {
+          panel.style.display = 'none';
+        } else {
+          panel.style.display = 'block';
+          renderNotificationsDropdown();
+        }
+      }
+    }
+
+    function updateNotifBadge() {
+      const badge = document.getElementById('notifBadge');
+      if (!badge) return;
+
+      const keys = Object.keys(notificationsList);
+      const count = keys.length;
+      if (count > 0) {
+        badge.innerText = count;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    function renderNotificationsDropdown() {
+      const listContainer = document.getElementById('notifDropdownList');
+      if (!listContainer) return;
+      listContainer.innerHTML = '';
+
+      const keys = Object.keys(notificationsList).reverse();
+      if (keys.length === 0) {
+        listContainer.innerHTML = `<p style="text-align: center; color: var(--light-text); font-size: 0.85rem; padding: 15px 0; margin: 0;">Aucune notification pour le moment</p>`;
+        return;
+      }
+
+      keys.forEach(key => {
+        const notif = notificationsList[key];
+        const dateStr = new Date(notif.timestamp).toLocaleDateString();
+        
+        const div = document.createElement('div');
+        div.style.padding = '8px 10px';
+        div.style.borderBottom = '1px solid #f0f0f0';
+        div.style.fontSize = '0.85rem';
+        div.innerHTML = `
+          <strong>${notif.title}</strong>
+          <p style="margin: 3px 0; color: #555;">${notif.body}</p>
+          <span style="font-size: 0.7rem; color: var(--light-text);">${dateStr}</span>
+        `;
+        listContainer.appendChild(div);
+      });
+    }
+
+    function marquerToutCommeLu() {
+      db.ref('notifications').remove().then(() => {
+        notificationsList = {};
+        updateNotifBadge();
+        renderNotificationsDropdown();
+      });
+    }
+
+    // Gestion des Cours par l'Admin
+    const publishCourseBtn = document.getElementById('publishCourseBtn');
+    if (publishCourseBtn) {
+      publishCourseBtn.addEventListener('click', function() {
+        if (!currentProfile || currentProfile.role !== 'admin') return;
+        const major = document.getElementById('courseMajor').value;
+        const level = document.getElementById('courseLevel').value;
+        const title = document.getElementById('courseTitle').value.trim();
+        const driveUrl = document.getElementById('courseDriveUrl').value.trim();
+
+        if (!title || !driveUrl) {
+          alert("Veuillez remplir le nom et le lien Drive du cours.");
+          return;
+        }
+
+        db.ref('courses').push({
+          major: major,
+          level: level,
+          title: title,
+          driveUrl: driveUrl,
+          timestamp: Date.now()
+        }).then(() => {
+          alert("Cours ajouté avec succès !");
+          document.getElementById('courseTitle').value = '';
+          document.getElementById('courseDriveUrl').value = '';
+        });
+      });
+    }
+
+    // Gestion des Livres (Bibliothèque) par l'Admin
+    const publishBookBtn = document.getElementById('publishBookBtn');
+    if (publishBookBtn) {
+      publishBookBtn.addEventListener('click', function() {
+        if (!currentProfile || currentProfile.role !== 'admin') return;
+        const major = document.getElementById('bookMajor').value;
+        const title = document.getElementById('bookTitle').value.trim();
+        const author = document.getElementById('bookAuthor').value.trim();
+        const driveUrl = document.getElementById('bookDriveUrl').value.trim();
+
+        if (!title || !author || !driveUrl) {
+          alert("Veuillez remplir tous les champs du livre.");
+          return;
+        }
+
+        db.ref('books').push({
+          major: major,
+          title: title,
+          author: author,
+          driveUrl: driveUrl,
+          timestamp: Date.now()
+        }).then(() => {
+          alert("Livre ajouté à la bibliothèque !");
+          document.getElementById('bookTitle').value = '';
+          document.getElementById('bookAuthor').value = '';
+          document.getElementById('bookDriveUrl').value = '';
+        });
+      });
+    }
+
+    // Gestion Plannings par l'Admin
+    const publishSchedBtn = document.getElementById('publishSchedBtn');
+    if (publishSchedBtn) {
+      publishSchedBtn.addEventListener('click', function() {
+        if (!currentProfile || currentProfile.role !== 'admin') return;
+        const major = document.getElementById('schedMajor').value;
+        const level = document.getElementById('schedLevel').value;
+        const title = document.getElementById('schedTitle').value.trim();
+        const driveUrl = document.getElementById('schedDriveUrl').value.trim();
+        const fileInput = document.getElementById('schedFileInput');
+
+        if (!title) {
+          alert("Veuillez donner un titre au planning.");
+          return;
+        }
+
+        if (fileInput.files && fileInput.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            saveSchedule(major, level, title, driveUrl, e.target.result);
+          };
+          reader.readAsDataURL(fileInput.files[0]);
+        } else {
+          saveSchedule(major, level, title, driveUrl, '');
+        }
+      });
+    }
+
+    function saveSchedule(major, level, title, driveUrl, mediaUrl) {
+      db.ref('schedules').push({
+        major: major,
+        level: level,
+        title: title,
+        driveUrl: driveUrl,
+        mediaUrl: mediaUrl,
+        timestamp: Date.now()
+      }).then(() => {
+        alert("Planning publié avec succès !");
+        document.getElementById('schedTitle').value = '';
+        document.getElementById('schedDriveUrl').value = '';
+        document.getElementById('schedFileInput').value = '';
+      });
+    }
+
+    // Rendu des listes d'administration (Gestion / Suppression)
+    function renderAdminPostsManage() {
+      const container = document.getElementById('adminManagePostsList');
+      if (!container) return;
+      container.innerHTML = '';
+      Object.keys(postsList).forEach(key => {
+        const p = postsList[key];
+        const div = document.createElement('div');
+        div.className = 'manage-item';
+        div.innerHTML = `<span><strong>${p.title}</strong></span> <button onclick="deleteItem('posts', '${key}')" class="btn-danger">Supprimer</button>`;
+        container.appendChild(div);
+      });
+    }
+
+    function renderAdminCoursesManage() {
+      const container = document.getElementById('adminManageCoursesList');
+      if (!container) return;
+      container.innerHTML = '';
+      Object.keys(coursesList).forEach(key => {
+        const c = coursesList[key];
+        const div = document.createElement('div');
+        div.className = 'manage-item';
+        div.innerHTML = `<span><strong>${c.title}</strong> (${c.major} - ${c.level})</span> <button onclick="deleteItem('courses', '${key}')" class="btn-danger">Supprimer</button>`;
+        container.appendChild(div);
+      });
+    }
+
+    function renderAdminBooksManage() {
+      const container = document.getElementById('adminManageBooksList');
+      if (!container) return;
+      container.innerHTML = '';
+      Object.keys(booksList).forEach(key => {
+        const b = booksList[key];
+        const div = document.createElement('div');
+        div.className = 'manage-item';
+        div.innerHTML = `<span><strong>${b.title}</strong> par ${b.author}</span> <button onclick="deleteItem('books', '${key}')" class="btn-danger">Supprimer</button>`;
+        container.appendChild(div);
+      });
+    }
+
+    function renderAdminSchedulesManage() {
+      const container = document.getElementById('adminManageSchedList');
+      if (!container) return;
+      container.innerHTML = '';
+      Object.keys(schedulesList).forEach(key => {
+        const s = schedulesList[key];
+        const div = document.createElement('div');
+        div.className = 'manage-item';
+        div.innerHTML = `<span><strong>${s.title}</strong> (${s.major})</span> <button onclick="deleteItem('schedules', '${key}')" class="btn-danger">Supprimer</button>`;
+        container.appendChild(div);
+      });
+    }
+
+    function renderAdminSuggestions() {
+      const container = document.getElementById('adminSuggestionsList');
+      if (!container) return;
+      container.innerHTML = '';
+      Object.keys(suggestionsList).forEach(key => {
+        const sug = suggestionsList[key];
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.innerHTML = `
+          <strong>${sug.title}</strong> (Par: ${sug.author})
+          <p style="margin:4px 0; font-size:0.85rem;">${sug.content}</p>
+          <button onclick="deleteItem('suggestions', '${key}')" class="btn-danger">Archiver / Supprimer</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderAdminReports() {
+      const container = document.getElementById('adminReportsList');
+      if (!container) return;
+      container.innerHTML = '';
+      Object.keys(reportsList).forEach(key => {
+        const rep = reportsList[key];
+        const msg = messagesList[rep.messageKey];
+        const msgText = msg ? msg.text : "[Message déjà supprimé]";
+        const div = document.createElement('div');
+        div.className = 'manage-item';
+        div.innerHTML = `
+          <span>Signalé par <strong>${rep.reportedBy}</strong> : "${msgText}"</span>
+          <div>
+            ${msg ? `<button onclick="deleteItem('messages', '${rep.messageKey}'); deleteItem('reports', '${key}');" class="btn-danger">Supprimer le message</button>` : ''}
+            <button onclick="deleteItem('reports', '${key}')" class="btn-gold" style="padding:4px 8px; font-size:0.75rem; width:auto; margin-left:5px;">Ignorer</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function renderAdminStudents() {
+      const container = document.getElementById('adminStudentsList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      Object.keys(usersList).forEach(key => {
+        const u = usersList[key];
+        const div = document.createElement('div');
+        div.className = 'student-item';
+        div.innerHTML = `
+          <span><strong>${u.name}</strong> (${u.email}) - ${u.role === 'admin' ? 'Admin' : u.major + ' / ' + u.level}</span>
+          <div>
+            ${u.role !== 'admin' ? `<button onclick="promoteUser('${key}')" class="btn-promote">Passer Supérieur</button>` : ''}
+            <button onclick="deleteUser('${key}')" class="btn-danger">Supprimer</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function deleteItem(node, key) {
+      if (confirm("Confirmer la suppression ?")) {
+        db.ref(node + '/' + key).remove().then(() => {
+          alert("Élément supprimé.");
+        });
+      }
+    }
+
+    function deleteUser(key) {
+      if (confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) {
+        db.ref('users/' + key).remove().then(() => {
+          alert("Utilisateur supprimé.");
+        });
+      }
+    }
+
+    function promoteUser(key) {
+      const u = usersList[key];
+      if (!u) return;
+      let nextLevel = u.level;
+      if (u.level === 'L1') nextLevel = 'L2';
+      else if (u.level === 'L2') nextLevel = 'L3';
+      else if (u.level === 'L3') nextLevel = 'M1';
+      else if (u.level === 'M1') nextLevel = 'M2';
+      else if (u.level === 'M2') nextLevel = 'Alumni';
+
+      db.ref('users/' + key).update({ level: nextLevel }).then(() => {
+        alert(`Étudiant promu en ${nextLevel} avec succès !`);
+      });
+    }
+  </script>
+   
 
     function toggleSideDrawer() {
       const drawer = document.getElementById('sideDrawer');
