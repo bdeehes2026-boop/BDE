@@ -589,54 +589,7 @@
       </div>
     </div>
   </div>
-       <div id="secSuggestions">
-          <h3>💡 Suggestions reçues</h3>
-          <div class="suggestion-box" id="adminSuggestionsList"></div>
-        </div>
-      </div>
-    </div>
-
-    <div id="logoutSection" class="hidden" style="text-align:center; margin-top:15px;">
-      <button id="logoutBtn" style="background-color: #666; width: auto; padding: 9px 22px; border-radius: 20px;">Se déconnecter du compte</button>
-    </div>
-
-  </div>
-
-  <div id="profileModal" class="modal hidden">
-    <div class="modal-content">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3 style="margin:0;">👤 Mon Profil</h3>
-        <button onclick="closeProfileModal()" style="width:auto; padding:3px 8px; margin:0;">✖</button>
-      </div>
-      <form id="profileForm">
-        <label style="font-size:0.85rem; font-weight:600;">Nom et Prénom :</label>
-        <input type="text" id="profileName">
-        
-        <div id="profileStudentOnly">
-          <label style="font-size:0.85rem; font-weight:600;">Filière :</label>
-          <select id="profileMajor">
-            <option value="Pétrole et Gaz">Pétrole et Gaz</option>
-            <option value="Génie Civil">Génie Civil</option>
-            <option value="Gestion des Entreprises">Gestion des Entreprises</option>
-            <option value="Transport & Logistique">Transport & Logistique</option>
-          </select>
-
-          <label style="font-size:0.85rem; font-weight:600;">Niveau :</label>
-          <select id="profileLevel">
-            <option value="L1">Licence 1 (L1)</option>
-            <option value="L2">Licence 2 (L2)</option>
-            <option value="L3">Licence 3 (L3)</option>
-            <option value="M1">Master 1 (M1)</option>
-            <option value="M2">Master 2 (M2)</option>
-            <option value="Alumni">Alumni</option>
-          </select>
-        </div>
-
-        <button type="submit" class="btn-gold" style="margin-top:12px;">Enregistrer les modifications</button>
-      </form>
-    </div>
-  </div>
-
+       
   <script>
     const STUDENT_SECRET_CODE = "EHES2026";
     const ADMIN_SECRET_CODE = "Bde2026"; 
