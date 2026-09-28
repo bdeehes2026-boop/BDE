@@ -951,7 +951,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     if (toggleAuthLink) toggleAuthLink.textContent = "Créer un compte";
   }
 }
-    function handleAuthSubmit(e) {
+   function handleAuthSubmit(e) {
       if (e) e.preventDefault();
       
       const emailInput = document.getElementById('authUsername');
@@ -1045,10 +1045,13 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
           .then((userCredential) => {
             const authUser = userCredential.user;
 
-            // Optionnel : Désactive temporairement si tu veux tester sans valider l'e-mail en local
+            // Suppression automatique si l'e-mail n'est pas vérifié
             if (!authUser.emailVerified) {
-              alert("⚠️ Adresse e-mail non vérifiée ! Veuillez consulter votre boîte mail et cliquer sur le lien de confirmation.");
-              firebase.auth().signOut();
+              authUser.delete().then(() => {
+                alert("⚠️ Ce compte n'a pas été vérifié par e-mail et a été supprimé. Veuillez vous réinscrire.");
+              }).catch((error) => {
+                console.error("Erreur lors de la suppression du compte non vérifié :", error);
+              });
               return;
             }
 
