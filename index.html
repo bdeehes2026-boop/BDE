@@ -923,27 +923,34 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       };
     }
 
-    function toggleAuthMode(e) {
-      if (e) e.preventDefault();
-      isRegisterMode = !isRegisterMode;
+   function toggleAuthMode(e) {
+  if (e) e.preventDefault();
+  
+  const authTitle = document.getElementById('authTitle');
+  const registerFields = document.getElementById('registerFields');
+  const authSubmitBtn = document.getElementById('authSubmitBtn');
+  const toggleAuthText = document.getElementById('toggleAuthText');
+  const toggleAuthLink = document.getElementById('toggleAuthLink');
 
-      const els = getAuthElements();
-      if (!els.authTitle || !els.registerFields || !els.authSubmitBtn) return;
+  // Vérifie si les champs d'inscription sont actuellement cachés
+  const isHidden = registerFields.classList.contains('hidden');
 
-      if (isRegisterMode) {
-        els.authTitle.innerText = "Créer un compte";
-        els.registerFields.classList.remove('hidden');
-        els.authSubmitBtn.innerText = "S'inscrire";
-        if (els.toggleAuthText) els.toggleAuthText.innerText = "Déjà inscrit ?";
-        if (els.toggleAuthLink) els.toggleAuthLink.innerText = "Se connecter";
-      } else {
-        els.authTitle.innerText = "Espace Connexion";
-        els.registerFields.classList.add('hidden');
-        els.authSubmitBtn.innerText = "Se connecter";
-        if (els.toggleAuthText) els.toggleAuthText.innerText = "Nouveau sur le portail ?";
-        if (els.toggleAuthLink) els.toggleAuthLink.innerText = "Créer un compte";
-      }
-    }
+  if (isHidden) {
+    // ➡️ Basculer vers le mode INSCRIPTION
+    registerFields.classList.remove('hidden');
+    if (authTitle) authTitle.textContent = "Créer un compte";
+    if (authSubmitBtn) authSubmitBtn.textContent = "S'inscrire";
+    if (toggleAuthText) toggleAuthText.textContent = "Déjà un compte ?";
+    if (toggleAuthLink) toggleAuthLink.textContent = "Se connecter";
+  } else {
+    // ⬅️ Basculer vers le mode CONNEXION
+    registerFields.classList.add('hidden');
+    if (authTitle) authTitle.textContent = "Espace Connexion";
+    if (authSubmitBtn) authSubmitBtn.textContent = "Se connecter";
+    if (toggleAuthText) toggleAuthText.textContent = "Nouveau sur le portail ?";
+    if (toggleAuthLink) toggleAuthLink.textContent = "Créer un compte";
+  }
+}
     function handleAuthSubmit(e) {
       if (e) e.preventDefault();
       
