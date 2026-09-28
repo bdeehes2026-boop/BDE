@@ -1731,13 +1731,13 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         });
       }
     }
-    // Écouter les messages de Firebase en temps réel
+    // Variable globale pour stocker les messages
+let messagesList = {};
+
+// Écoute en temps réel sur la base de données Firebase
 db.ref('messages').on('value', (snapshot) => {
-  // On met à jour la liste globale des messages
-  window.messagesList = snapshot.val() || {};
-  
-  // On appelle la fonction pour rafraîchir l'affichage à chaque modification
-  renderChat();
+  messagesList = snapshot.val() || {};
+  renderChat(); // Actualise l'affichage automatiquement
 });
 
     function deleteChatMessage(msgKey) {
