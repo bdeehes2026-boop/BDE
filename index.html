@@ -652,21 +652,26 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    try {
-      const messaging = firebase.messaging();
-      messaging.requestPermission()
-        .then(() => messaging.getToken())
-        .then((token) => console.log("Jeton FCM :", token))
-        .catch((err) => console.warn("Notifications désactivées."));
+    
+if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.isSupported()) {
+  try {
+    const messaging = firebase.messaging();
+    messaging.requestPermission()
+      .then(() => messaging.getToken())
+      .then((token) => console.log("Jeton FCM :", token))
+      .catch((err) => console.warn("Erreur FCM :", err));
 
-      messaging.onMessage((payload) => {
-        if (payload.notification) {
-          alert(`${payload.notification.title}\n${payload.notification.body}`);
-        }
-      });
-    } catch (err) {
-      console.warn("FCM non supporté.");
-    }
+    messaging.onMessage((payload) => {
+      if (payload.notification) {
+        alert(`${payload.notification.title}: ${payload.notification.body}`);
+      }
+    });
+  } catch (err) {
+    console.warn("FCM non initialisé sur cet appareil.");
+  }
+} else {
+  console.log("Firebase Cloud Messaging non supporté sur ce navigateur.");
+}
 
     let currentProfile = null;
     let isRegisterMode = false;
