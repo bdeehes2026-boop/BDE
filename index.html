@@ -945,9 +945,15 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       }
     }
     function handleAuthSubmit(e) {
-      e.preventDefault();
-      const email = document.getElementById('authUsername').value.trim();
-      const password = document.getElementById('authPassword').value.trim();
+      if (e) e.preventDefault();
+      
+      const emailInput = document.getElementById('authUsername');
+      const passwordInput = document.getElementById('authPassword');
+      
+      if (!emailInput || !passwordInput) return;
+      
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
 
       if (!email || !password) {
         alert("Veuillez remplir l'adresse e-mail et le mot de passe.");
@@ -955,10 +961,23 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       }
 
       if (isRegisterMode) {
-        const name = document.getElementById('authName').value.trim();
-        const role = document.getElementById('authRole').value;
-        const code = document.getElementById('authCode').value.trim();
+        const nameInput = document.getElementById('authName');
+        const roleSelect = document.getElementById('authRole');
+        const codeInput = document.getElementById('authCode');
 
+        if (!nameInput || !roleSelect || !codeInput) return;
+
+        const name = nameInput.value.trim();
+        const role = roleSelect.value;
+        const code = codeInput.value.trim();
+
+        // 1. Vérification prioritaire du nom
+        if (!name) {
+          alert("Veuillez saisir votre nom et prénom.");
+          return;
+        }
+
+        // 2. Vérification des codes secrets
         if (role === 'admin') {
           if (code !== ADMIN_SECRET_CODE) {
             alert("Code d'activation Administrateur incorrect !");
@@ -971,11 +990,6 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
           }
         }
 
-        if (!name) {
-          alert("Veuillez saisir votre nom et prénom.");
-          return;
-        }
-
         const level = (role === 'admin') ? "ADMIN" : document.getElementById('authLevel').value;
         const major = (role === 'admin') ? "Administration BDE" : document.getElementById('authMajor').value;
         const adminPost = (role === 'admin') ? document.getElementById('authAdminPost').value : null;
@@ -985,6 +999,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
           return;
         }
 
+        // 3. Création du compte Firebase Auth
         firebase.auth().createUserWithEmailAndPassword(email, password)
           .then((userCredential) => {
             const authUser = userCredential.user;
@@ -1007,7 +1022,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
                   alert("Erreur de sauvegarde : " + error.message);
                 } else {
                   firebase.auth().signOut();
-                  alert("Compte créé ! 📧 Un e-mail de confirmation a été envoyé à " + email + ". Cliquez sur le lien pour l'activer.");
+                  alert("Compte créé avec succès ! 📧 Un e-mail de confirmation a été envoyé à " + email + ". Veuillez vérifier votre boîte de réception avant de vous connecter.");
                   toggleAuthMode(e);
                 }
               });
@@ -1018,12 +1033,14 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
           });
 
       } else {
+        // Mode Connexion
         firebase.auth().signInWithEmailAndPassword(email, password)
           .then((userCredential) => {
             const authUser = userCredential.user;
 
+            // Optionnel : Désactive temporairement si tu veux tester sans valider l'e-mail en local
             if (!authUser.emailVerified) {
-              alert("⚠️ Adresse e-mail non vérifiée ! Veuillez consulter votre boîte mail.");
+              alert("⚠️ Adresse e-mail non vérifiée ! Veuillez consulter votre boîte mail et cliquer sur le lien de confirmation.");
               firebase.auth().signOut();
               return;
             }
@@ -1040,32 +1057,68 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
               };
 
               localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
-              registerLogin();
-              checkUserSession();
+              
+              // Sécurisation des appels de fonctions annexes s'ils existent dans ton script
+              if (typeof registerLogin === 'function') registerLogin();
+              if (typeof checkUserSession === 'function') checkUserSession();
+              
               alert("Connexion réussie ! Bienvenue " + currentProfile.name);
+              
+              // Redirection vers l'accueil après connexion réussie
+              if (typeof switchTab === 'function') switchTab('homeTab');
+              if (typeof updateUI === 'function') updateUI();
             });
           })
-          .catch(() => {
-            alert("Erreur : Adresse e-mail ou mot de passe incorrect.");
+          .catch((error) => {
+            alert("Erreur : Adresse e-mail ou mot de passe incorrect. (" + error.message + ")");
           });
       }
     }
-
-    function registerLogin() {
+   function registerLogin() {
       if (!currentProfile) return;
+      
       const today = new Date().toISOString().split('T')[0];
-      db.ref('logins').push({ username: currentProfile.username, date: today });
+      // Sécurisation de la clé utilisateur pour Firebase Realtime Database (pas de '.', '#', '$', '[', ']', '/')
+      const safeKey = (currentProfile.email || currentProfile.username).replace(/[.$#[\]/]/g, "_");
+      
+      // Utilisation d'un chemin structuré par date et par utilisateur (évite les doublons pour un même jour)
+      db.ref(`logins/\({today}/\){safeKey}`).set({
+        name: currentProfile.name || 'Inconnu',
+        email: currentProfile.email || '',
+        timestamp: Date.now()
+      }).catch(err => {
+        console.error("Erreur lors de l'enregistrement de la connexion :", err);
+      });
     }
 
-    logoutBtn.addEventListener('click', () => {
-      firebase.auth().signOut().then(() => {
-        currentProfile = null;
-        localStorage.removeItem('ehes_user');
-        checkUserSession();
+    // Sécurisation de l'écouteur de déconnexion
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => {
+        firebase.auth().signOut().then(() => {
+          currentProfile = null;
+          localStorage.removeItem('ehes_user');
+          
+          // Vérification de l'existence de la fonction checkUserSession avant de l'appeler
+          if (typeof checkUserSession === 'function') {
+            checkUserSession();
+          }
+          
+          alert("Vous avez été déconnecté avec succès.");
+          if (typeof switchTab === 'function') {
+            switchTab('homeTab');
+          }
+          if (typeof updateUI === 'function') {
+            updateUI();
+          }
+        }).catch((error) => {
+          alert("Erreur lors de la déconnexion : " + error.message);
+        });
       });
-    });
+    }
 
     function checkUserSession() {
+      // Récupération sécurisée des éléments clés de l'interface
       const adminNotice = document.getElementById('adminNotice');
       const adminPanel = document.getElementById('adminPanel');
       const adminPcBar = document.getElementById('adminPcBar');
@@ -1074,81 +1127,90 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       const dmTabBtn = document.getElementById('dmTabBtn');
       const drawerProjectsBtn = document.getElementById('drawerProjectsBtn');
       const drawerDmBtn = document.getElementById('drawerDmBtn');
+      const authSection = document.getElementById('authSection');
+      const logoutSection = document.getElementById('logoutSection');
+      const profileBtn = document.getElementById('profileBtn');
+      const userStatus = document.getElementById('userStatus');
+      const welcomeMsg = document.getElementById('welcomeMsg');
+      const userLevelDisplay = document.getElementById('userLevelDisplay');
+      const chatContainer = document.getElementById('chatContainer');
+      const chatGuestWarning = document.getElementById('chatGuestWarning');
+      const filterMajor = document.getElementById('filterMajor');
 
       if (currentProfile) {
-        authSection.classList.add('hidden');
-        logoutSection.classList.remove('hidden');
-        document.getElementById('profileBtn').classList.remove('hidden');
+        if (authSection) authSection.classList.add('hidden');
+        if (logoutSection) logoutSection.classList.remove('hidden');
+        if (profileBtn) profileBtn.classList.remove('hidden');
 
         let roleBadge = '👤 Étudiant';
         if (currentProfile.role === 'admin') {
           const postName = currentProfile.adminPost || 'Admin';
           roleBadge = `⚙️ Admin [${postName}]`;
         }
-        userStatus.innerText = `${roleBadge} : ${currentProfile.name}`;
-        welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
-        userLevelDisplay.innerText = `${currentProfile.level} - ${currentProfile.major}`;
 
-        if (document.getElementById('filterMajor') && currentProfile.role !== 'admin') {
-          document.getElementById('filterMajor').value = currentProfile.major;
+        if (userStatus) userStatus.innerText = `\({roleBadge} :\){currentProfile.name}`;
+        if (welcomeMsg) welcomeMsg.innerText = `Ravi de vous revoir, ${currentProfile.name} !`;
+        if (userLevelDisplay) userLevelDisplay.innerText = `\({currentProfile.level || ''} -\){currentProfile.major || ''}`;
+
+        // Pré-filtrer les cours selon la filière de l'étudiant
+        if (filterMajor && currentProfile.role !== 'admin') {
+          filterMajor.value = currentProfile.major;
         }
 
-        document.getElementById('chatContainer').classList.remove('hidden');
-        document.getElementById('chatGuestWarning').classList.add('hidden');
+        if (chatContainer) chatContainer.classList.remove('hidden');
+        if (chatGuestWarning) chatGuestWarning.classList.add('hidden');
 
-        if (currentProfile.role === 'admin') {
-          adminNotice.classList.add('hidden');
-          adminPanel.classList.remove('hidden');
-          adminPcBar.classList.remove('hidden');
-          drawerAdminSection.classList.remove('hidden');
-          adminProjectsTabBtn.classList.remove('hidden');
-          dmTabBtn.classList.remove('hidden');
-          drawerProjectsBtn.classList.remove('hidden');
-          drawerDmBtn.classList.remove('hidden');
-          renderDmContacts();
-          loadAdminStats();
-          renderAdminStudents();
-        } else {
-          adminNotice.classList.remove('hidden');
-          adminPanel.classList.add('hidden');
-          adminPcBar.classList.add('hidden');
-          drawerAdminSection.classList.add('hidden');
-          adminProjectsTabBtn.classList.add('hidden');
-          dmTabBtn.classList.add('hidden');
-          drawerProjectsBtn.classList.add('hidden');
-          drawerDmBtn.classList.add('hidden');
+        // Gestion des affichages spécifiques Admin vs Étudiant
+        const isAdmin = (currentProfile.role === 'admin');
+
+        if (adminNotice) adminNotice.classList.toggle('hidden', isAdmin);
+        if (adminPanel) adminPanel.classList.toggle('hidden', !isAdmin);
+        if (adminPcBar) adminPcBar.classList.toggle('hidden', !isAdmin);
+        if (drawerAdminSection) drawerAdminSection.classList.toggle('hidden', !isAdmin);
+        if (adminProjectsTabBtn) adminProjectsTabBtn.classList.toggle('hidden', !isAdmin);
+        if (dmTabBtn) dmTabBtn.classList.toggle('hidden', !isAdmin);
+        if (drawerProjectsBtn) drawerProjectsBtn.classList.toggle('hidden', !isAdmin);
+        if (drawerDmBtn) drawerDmBtn.classList.toggle('hidden', !isAdmin);
+
+        if (isAdmin) {
+          if (typeof renderDmContacts === 'function') renderDmContacts();
+          if (typeof loadAdminStats === 'function') loadAdminStats();
+          if (typeof renderAdminStudents === 'function') renderAdminStudents();
         }
 
       } else {
-        authSection.classList.remove('hidden');
-        logoutSection.classList.add('hidden');
-        document.getElementById('profileBtn').classList.add('hidden');
-        adminPcBar.classList.add('hidden');
-        drawerAdminSection.classList.add('hidden');
-        adminProjectsTabBtn.classList.add('hidden');
-        dmTabBtn.classList.add('hidden');
-        drawerProjectsBtn.classList.add('hidden');
-        drawerDmBtn.classList.add('hidden');
-        userStatus.innerText = "Visiteur";
-        welcomeMsg.innerText = "Votre plateforme académique & vie étudiante";
-        userLevelDisplay.innerText = "Non connecté";
+        // Mode Visiteur / Non connecté
+        if (authSection) authSection.classList.remove('hidden');
+        if (logoutSection) logoutSection.classList.add('hidden');
+        if (profileBtn) profileBtn.classList.add('hidden');
+        
+        if (adminPcBar) adminPcBar.classList.add('hidden');
+        if (drawerAdminSection) drawerAdminSection.classList.add('hidden');
+        if (adminProjectsTabBtn) adminProjectsTabBtn.classList.add('hidden');
+        if (dmTabBtn) dmTabBtn.classList.add('hidden');
+        if (drawerProjectsBtn) drawerProjectsBtn.classList.add('hidden');
+        if (drawerDmBtn) drawerDmBtn.classList.add('hidden');
 
-        document.getElementById('chatContainer').classList.add('hidden');
-        document.getElementById('chatGuestWarning').classList.remove('hidden');
+        if (userStatus) userStatus.innerText = "Visiteur";
+        if (welcomeMsg) welcomeMsg.innerText = "Votre plateforme académique & vie étudiante";
+        if (userLevelDisplay) userLevelDisplay.innerText = "Non connecté";
 
-        adminNotice.classList.remove('hidden');
-        adminPanel.classList.add('hidden');
+        if (chatContainer) chatContainer.classList.add('hidden');
+        if (chatGuestWarning) chatGuestWarning.classList.remove('hidden');
+
+        if (adminNotice) adminNotice.classList.remove('hidden');
+        if (adminPanel) adminPanel.classList.add('hidden');
       }
 
-      renderAnnouncements();
-      renderCourses();
-      renderBiblio();
-      renderSchedules();
-      renderChat();
-      renderProjects();
-      updateNotifBadge();
+      // Actualisation globale des différents flux de données si les fonctions existent
+      if (typeof renderAnnouncements === 'function') renderAnnouncements();
+      if (typeof renderCourses === 'function') renderCourses();
+      if (typeof renderBiblio === 'function') renderBiblio();
+      if (typeof renderSchedules === 'function') renderSchedules();
+      if (typeof renderChat === 'function') renderChat();
+      if (typeof renderProjects === 'function') renderProjects();
+      if (typeof updateNotifBadge === 'function') updateNotifBadge();
     }
-
     function formatDriveLink(url) {
       if (!url) return '#';
       url = url.trim();
