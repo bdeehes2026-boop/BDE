@@ -952,7 +952,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     if (toggleAuthLink) toggleAuthLink.textContent = "Créer un compte";
   }
 }
- function handleAuthSubmit(e) {
+ window.handleAuthSubmit = function(e) {
       if (e) e.preventDefault();
       
       const emailInput = document.getElementById('authUsername');
@@ -1074,20 +1074,17 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
               };
 
               localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
-              db.ref('users/' + authUser.uid).once('value', (snapshot) => {
-  const profileData = snapshot.val();
-  currentProfile = profileData || { ... };
+              
+              // Lancement des notifications push si la fonction existe
+              if (typeof initPushNotifications === 'function') {
+                  initPushNotifications();
+              }
 
-  localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
-  
-  alert("Connexion réussie ! Bienvenue " + currentProfile.name);
-  if (typeof switchTab === 'function') switchTab('homeTab');
-});
               if (typeof registerLogin === 'function') registerLogin();
               if (typeof checkUserSession === 'function') checkUserSession();
               
               alert("Connexion réussie ! Bienvenue " + currentProfile.name);
- 
+              
               if (typeof switchTab === 'function') switchTab('homeTab');
               if (typeof updateUI === 'function') updateUI();
             });
@@ -1096,7 +1093,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
             alert("Erreur : Adresse e-mail ou mot de passe incorrect. (" + error.message + ")");
           });
       }
-    }
+    };
     
    function registerLogin() {
       if (!currentProfile) return;
