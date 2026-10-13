@@ -1,66 +1,72 @@
+'use strict';
 
-const CACHE_NAME = 'ehes-pwa-v1';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'ehes-bde-pwa-v2';
+const OWNED_CACHE_PREFIX = 'ehes-bde-pwa-';
+const LEGACY_CACHE_NAME = 'ehes-pwa-v1';
+const APP_SCOPE = new URL(self.registration.scope);
+const PRECACHE_URLS = [
   './',
-  './index.html',
-  './manifest.json',
+  'index.html',
+  'manifest.json',
+  'icons/icon-192.png',
+  'icons/icon-512.png',
+  'icons/icon-maskable-512.png'
+].map((path) => new URL(path, APP_SCOPE).href);
+const PRECACHE_PATHS = new Set(
+  PRECACHE_URLS.map((url) => new URL(url).pathname)
+);
 
-];
-
-// Installation : Mise en cache des fichiers essentiels
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[PWA] Mise en cache des ressources statiques');
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(PRECACHE_URLS);
+    await self.skipWaiting();
+  })());
 });
 
-// Activation : Nettoyage des anciens caches si mise à jour
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('[PWA] Suppression de l\'ancien cache:', key);
-            return caches.delete(key);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const cacheNames = await caches.keys();
+    const obsoleteOwnedCaches = cacheNames.filter((name) =>
+      name === LEGACY_CACHE_NAME ||
+      (name.startsWith(OWNED_CACHE_PREFIX) && name !== CACHE_NAME)
+    );
+    await Promise.all(obsoleteOwnedCaches.map((name) => caches.delete(name)));
+    await self.clients.claim();
+  })());
 });
 
-// Interception des requêtes : Stratégie "Network First, falling back to Cache"
 self.addEventListener('fetch', (event) => {
-  // Ignorer les requêtes non-GET (ex: POST, PUT)
-  if (event.request.method !== 'GET') return;
+  const request = event.request;
+  if (request.method !== 'GET') return;
 
-  event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        // Si le réseau répond, on met à jour le cache dynamiquement
-        if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return networkResponse;
-      })
-      .catch(() => {
-        // En cas d'absence de réseau (Hors-ligne), servir depuis le cache
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // Optionnel : retourner une page hors-ligne par défaut si disponible
-          return caches.match('./index.html');
-        });
-      })
-  );
+  const url = new URL(request.url);
+  if (
+    url.origin !== APP_SCOPE.origin ||
+    !url.pathname.startsWith(APP_SCOPE.pathname) ||
+    !PRECACHE_PATHS.has(url.pathname)
+  ) {
+    return;
+  }
+
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    try {
+      const response = await fetch(request);
+      if (response.ok && response.type === 'basic') {
+        await cache.put(request, response.clone());
+      }
+      return response;
+    } catch (error) {
+      const cachedResponse = await cache.match(request, { ignoreSearch: true });
+      if (cachedResponse) return cachedResponse;
+
+      if (request.mode === 'navigate') {
+        const appShell = await cache.match(new URL('index.html', APP_SCOPE).href);
+        if (appShell) return appShell;
+      }
+
+      throw error;
+    }
+  })());
 });
