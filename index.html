@@ -2810,56 +2810,151 @@ if (typeof announcementsContainer === 'undefined') {
     setInterval(updateCountdown, 1000);
     updateCountdown();
 
-    // --- MINI-SONDAGE FIREBASE ---
-    function submitVote(optionKey) {
-      if (!currentProfile) {
-        alert("Vous devez être connecté pour participer au sondage.");
+    // --- PUBLICATION D'UN NOUVEAU SONDAGE PAR L'ADMIN ---
+    function publishNewPoll() {
+      if (!checkAdminAuth()) return;
+
+      const question = document.getElementById('adminPollQuestion').value.trim();
+      const opt1 = document.getElementById('adminPollOpt1').value.trim();
+      const opt2 = document.getElementById('adminPollOpt2').value.trim();
+      const opt3 = document.getElementById('adminPollOpt3').value.trim();
+
+      if (!question || !opt1 || !opt2) {
+        alert("Veuillez renseigner la question et au moins deux options.");
         return;
       }
 
-      const safeUserId = currentProfile.id.replace(/[.$#[\]/]/g, "_");
-
-      db.ref(`polls/current_poll/votes/${safeUserId}`).set({
-        choice: optionKey,
-        userName: currentProfile.name || 'Étudiant',
-        timestamp: Date.now()
+      db.ref('polls/current_poll').set({
+        question: question,
+        options: { opt1, opt2, opt3 },
+        votes: null // Réinitialise les votes pour le nouveau sondage
       }).then(() => {
-        alert("✅ Merci ! Votre vote a bien été pris en compte.");
+        alert("✅ Nouveau sondage publié avec succès !");
+        document.getElementById('adminPollQuestion').value = '';
+        document.getElementById('adminPollOpt1').value = '';
+        document.getElementById('adminPollOpt2').value = '';
+        document.getElementById('adminPollOpt3').value = '';
       }).catch(err => {
-        console.error("Erreur lors du vote :", err);
-        alert("Impossible d'enregistrer votre vote pour le moment.");
+        alert("Erreur lors de la publication du sondage : " + err.message);
       });
     }
 
-    db.ref('polls/current_poll/votes').on('value', (snapshot) => {
-      const votesData = snapshot.val() || {};
-      const votesArray = Object.values(votesData);
-      
-      const totalVotes = votesArray.length;
-      const totalVotesEl = document.getElementById('totalVotesCount');
-      if (totalVotesEl) totalVotesEl.innerText = totalVotes;
+    // --- PUBLICATION D'UNE ACTIVITÉ AVEC COMPTE À REBOURS PAR L'ADMIN ---
+    function publishNewEventCountdown() {
+      if (!checkAdminAuth()) return;
 
-      let counts = { football: 0, integration: 0, conference: 0 };
-      votesArray.forEach(v => {
-        if (counts[v.choice] !== undefined) {
-          counts[v.choice]++;
-        }
+      const title = document.getElementById('adminEventTitle').value.trim();
+      const dateStr = document.getElementById('adminEventDate').value;
+
+      if (!title || !dateStr) {
+        alert("Veuillez saisir le nom de l'événement et la date.");
+        return;
+      }
+
+      db.ref('settings/active_countdown').set({
+        title: title,
+        targetTime: new Date(dateStr).getTime()
+      }).then(() => {
+        alert("⏰ Compte à rebours mis à jour pour l'événement : " + title);
+        document.getElementById('adminEventTitle').value = '';
+        document.getElementById('adminEventDate').value = '';
+      }).catch(err => {
+        alert("Erreur : " + err.message);
       });
+    }
+
+    // --- ÉCOUTE TEMPS RÉEL DU SONDAGE CÔTÉ ÉTUDIANT ---
+    db.ref('polls/current_poll').on('value', (snapshot) => {
+      const poll = snapshot.val();
+      const card = document.getElementById('pollCard');
+      if (!card) return;
+
+      if (!poll) {
+        card.style.display = 'none';
+        return;
+      }
+      card.style.display = 'block';
+
+      const questionEl = document.getElementById('pollQuestion');
+      if (questionEl) questionEl.innerText = poll.question;
+
+      const optionsContainer = document.getElementById('pollOptionsContainer');
+      if (optionsContainer && poll.options) {
+        let html = '';
+        if (poll.options.opt1) html += `<button class="btn-gold" onclick="submitVote('opt1')">📌 ${poll.options.opt1}</button>`;
+        if (poll.options.opt2) html += `<button class="btn-gold" onclick="submitVote('opt2')">📌 ${poll.options.opt2}</button>`;
+        if (poll.options.opt3) html += `<button class="btn-gold" onclick="submitVote('opt3')">📌 ${poll.options.opt3}</button>`;
+        optionsContainer.innerHTML = html;
+      }
+
+      // Calcul des votes en direct
+      const votes = poll.votes ? Object.values(poll.votes) : [];
+      const total = votes.length;
+      const totalEl = document.getElementById('totalVotesCount');
+      if (totalEl) totalEl.innerText = total;
+
+      let counts = { opt1: 0, opt2: 0, opt3: 0 };
+      votes.forEach(v => { if (counts[v.choice] !== undefined) counts[v.choice]++; });
 
       const resultsContainer = document.getElementById('pollResultsContainer');
-      if (resultsContainer && totalVotes > 0) {
-        const pFoot = Math.round((counts.football / totalVotes) * 100);
-        const pInteg = Math.round((counts.integration / totalVotes) * 100);
-        const pConf = Math.round((counts.conference / totalVotes) * 100);
-
+      if (resultsContainer && total > 0 && poll.options) {
         resultsContainer.innerHTML = `
-          <div style="font-weight:600; margin-bottom:5px; color:var(--primary);">📊 Résultats en direct (${totalVotes} votes) :</div>
-          <div style="font-size:0.82rem; margin-bottom:3px;">⚽ Football : ${counts.football} votes (${pFoot}%)</div>
-          <div style="font-size:0.82rem; margin-bottom:3px;">🌴 Intégration : ${counts.integration} votes (${pInteg}%)</div>
-          <div style="font-size:0.82rem;">💡 Conférence : ${counts.conference} votes (${pConf}%)</div>
+          <div style="font-weight:600; margin-bottom:5px; color:var(--primary);">📊 Résultats (${total} votes) :</div>
+          <div style="font-size:0.82rem; margin-bottom:3px;">${poll.options.opt1} : ${counts.opt1} (${Math.round((counts.opt1/total)*100)}%)</div>
+          <div style="font-size:0.82rem; margin-bottom:3px;">${poll.options.opt2} : ${counts.opt2} (${Math.round((counts.opt2/total)*100)}%)</div>
+          ${poll.options.opt3 ? `<div style="font-size:0.82rem;">${poll.options.opt3} : ${counts.opt3} (${Math.round((counts.opt3/total)*100)}%)</div>` : ''}
         `;
       }
     });
+
+    function submitVote(optionKey) {
+      if (!currentProfile) {
+        alert("Connectez-vous pour voter !");
+        return;
+      }
+      const safeId = currentProfile.id.replace(/[.$#[\]/]/g, "_");
+      db.ref(`polls/current_poll/votes/${safeId}`).set({
+        choice: optionKey,
+        timestamp: Date.now()
+      }).then(() => alert("✅ Vote enregistré !"));
+    }
+
+    // --- ÉCOUTE TEMPS RÉEL DU COMPTE À REBOURS DE L'ACTIVITÉ ---
+    let globalTargetTime = null;
+    let globalEventTitle = "Échéance importante";
+
+    db.ref('settings/active_countdown').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        globalTargetTime = data.targetTime;
+        globalEventTitle = data.title;
+      }
+    });
+
+    function updateDynamicCountdown() {
+      const countdownEl = document.getElementById('countdownText');
+      if (!countdownEl) return;
+
+      if (!globalTargetTime) {
+        countdownEl.innerHTML = "Aucune activité majeure planifiée pour le moment.";
+        return;
+      }
+
+      const now = new Date().getTime();
+      const diff = globalTargetTime - now;
+
+      if (diff > 0) {
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        
+        countdownEl.innerHTML = `🔥 <strong>${globalEventTitle}</strong> : <br>Plus que <strong style="color:var(--primary);">${days}j ${hours}h ${mins}m</strong> !`;
+      } else {
+        countdownEl.innerHTML = `🎉 L'événement <strong>"${globalEventTitle}"</strong> a commencé ou est passé !`;
+      }
+    }
+    setInterval(updateDynamicCountdown, 1000);
+    updateDynamicCountdown();
 
   </script>
   
