@@ -305,26 +305,15 @@
       <div class="menu-title">Navigation Principale</div>
       <button onclick="navigateFromDrawer('homeTab')">📢 
       <!-- Compte à rebours officiel -->
-      <div class="card" style="border-left: 4px solid var(--secondary); background: #fdfbf7;">
-        <h3>⏳ Compte à rebours officiel</h3>
-        <p id="countdownText" style="font-size: 0.95rem; font-weight: 600; color: var(--primary);">Chargement...</p>
-      </div>
-
-      <!-- Mini-Sondage BDE -->
-      <div class="card" id="pollCard">
-        <h3>📊 Sondage Éclair du BDE</h3>
-        <p id="pollQuestion" style="font-weight: 600; color: #2c3e50; margin-bottom: 12px;">Quel type d'événement as-tu hâte de voir organiser ?</p>
-        
-        <div id="pollOptionsContainer" style="display: flex; flex-direction: column; gap: 8px;">
-          <button class="btn-gold" onclick="submitVote('football')">⚽ Tournoi de Football inter-filières</button>
-          <button class="btn-gold" onclick="submitVote('integration')">🌴 Voyage d'intégration & Sortie détente</button>
-          <button class="btn-gold" onclick="submitVote('conference')">💡 Conférence / Masterclass professionnelle</button>
-        </div>
-
-        <div id="pollResultsContainer" style="margin-top: 15px; font-size: 0.88rem; color: var(--light-text); border-top: 1px dashed #eee; padding-top: 10px;">
-          <span>Total des votes : <strong id="totalVotesCount">0</strong></span>
-        </div>
-      </div>
+      <div class="card">
+  <h3>⚙️ Interaction & Engagement</h3>
+  <p style="font-size:0.85rem; color:#666;">Gérez les sondages et les comptes à rebours affichés sur l'accueil.</p>
+  
+  <!-- Ce bouton ouvre la fenêtre pop-up -->
+  <button class="btn-gold" onclick="openAdminEngagementModal()" style="width:100%; padding:10px; margin-top:5px; font-weight:600;">
+    ➕ Gérer Sondage & Compte à Rebours
+  </button>
+</div>
 
 Accueil & Actualités</button>
       <button onclick="navigateFromDrawer('coursesTab')">📚 Cours & Travaux Dirigés</button>
