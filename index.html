@@ -231,29 +231,35 @@
         <button onclick="scrollToAdminSection('secEtudiants')">Etudiants
         </button>
       </div>
-      <!-- Carte de gestion Admin pour Sondages et Activités -->
-<div class="card" style="border-left: 4px solid var(--primary);">
-  <h3>⚙️ Gestion Admin : Sondages & Activités</h3>
-  
-  <!-- Formulaire de Sondage -->
-  <div style="margin-bottom: 15px;">
-    <h4 style="color: var(--primary); margin-bottom: 5px;">📊 Lancer un nouveau Sondage</h4>
-    <input type="text" id="adminPollQuestion" placeholder="Question du sondage (ex: Lieu du prochain événement ?)" style="width:100%; padding:8px; margin-bottom:5px; border-radius:4px; border:1px solid #ccc;">
-    <input type="text" id="adminPollOpt1" placeholder="Option 1 (ex: Saly)" style="width:100%; padding:8px; margin-bottom:5px; border-radius:4px; border:1px solid #ccc;">
-    <input type="text" id="adminPollOpt2" placeholder="Option 2 (ex: Saint-Louis)" style="width:100%; padding:8px; margin-bottom:5px; border-radius:4px; border:1px solid #ccc;">
-    <input type="text" id="adminPollOpt3" placeholder="Option 3 (ex: Dakar)" style="width:100%; padding:8px; margin-bottom:8px; border-radius:4px; border:1px solid #ccc;">
-    <button class="btn-gold" onclick="publishNewPoll()" style="width:100%; padding:8px; cursor:pointer;">🚀 Publier le Sondage</button>
+      <div id="homeTab" class="tab-content">
+  <div class="hero-banner">
+    <h2>Bienvenue sur le Portail BDE EHES</h2>
+    <p id="welcomeMsg" style="margin: 0; font-size: 0.95rem; opacity: 0.9;">Votre plateforme académique &amp; vie étudiante</p>
   </div>
 
-  <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+  <!-- Compte à rebours de l'activité clé -->
+  <div class="card" style="border-left: 4px solid var(--secondary); background: #fdfbf7;">
+    <h3>⏳ Événement / Compte à rebours</h3>
+    <p id="countdownText" style="font-size: 0.95rem; font-weight: 600; color: var(--primary);">Chargement...</p>
+  </div>
 
-  <!-- Formulaire d'Activité / Événement avec Compte à Rebours -->
-  <div>
-    <h4 style="color: var(--primary); margin-bottom: 5px;">⏳ Définir l'Activité / Événement Clé</h4>
-    <input type="text" id="adminEventTitle" placeholder="Nom de l'événement (ex: Examen de Fin de Semestre)" style="width:100%; padding:8px; margin-bottom:5px; border-radius:4px; border:1px solid #ccc;">
-    <label style="font-size:0.85rem; color:#666;">Date et heure limite :</label>
-    <input type="datetime-local" id="adminEventDate" style="width:100%; padding:8px; margin-bottom:8px; border-radius:4px; border:1px solid #ccc;">
-    <button class="btn-gold" onclick="publishNewEventCountdown()" style="width:100%; padding:8px; cursor:pointer;">⏰ Lancer le Compte à Rebours</button>
+  <!-- Sondage affiché aux étudiants -->
+  <div class="card" id="pollCard">
+    <h3>📊 Sondage Éclair du BDE</h3>
+    <p id="pollQuestion" style="font-weight: 600; color: #2c3e50; margin-bottom: 12px;">Aucun sondage actif pour le moment.</p>
+    
+    <div id="pollOptionsContainer" style="display: flex; flex-direction: column; gap: 8px;">
+      <!-- Les options s'afficheront ici dynamiquement -->
+    </div>
+
+    <div id="pollResultsContainer" style="margin-top: 15px; font-size: 0.88rem; color: var(--light-text); border-top: 1px dashed #eee; padding-top: 10px;">
+      <span>Total des votes : <strong id="totalVotesCount">0</strong></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📢 Annonces &amp; Actualités récentes</h2>
+    <div id="announcementsList"></div>
   </div>
 </div>
 
