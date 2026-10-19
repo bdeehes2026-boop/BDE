@@ -231,6 +231,32 @@
         <button onclick="scrollToAdminSection('secEtudiants')">Etudiants
         </button>
       </div>
+      <!-- Carte de gestion Admin pour Sondages et Activités -->
+<div class="card" style="border-left: 4px solid var(--primary);">
+  <h3>⚙️ Gestion Admin : Sondages & Activités</h3>
+  
+  <!-- Formulaire de Sondage -->
+  <div style="margin-bottom: 15px;">
+    <h4 style="color: var(--primary); margin-bottom: 5px;">📊 Lancer un nouveau Sondage</h4>
+    <input type="text" id="adminPollQuestion" placeholder="Question du sondage (ex: Lieu du prochain événement ?)" style="width:100%; padding:8px; margin-bottom:5px; border-radius:4px; border:1px solid #ccc;">
+    <input type="text" id="adminPollOpt1" placeholder="Option 1 (ex: Saly)" style="width:100%; padding:8px; margin-bottom:5px; border-radius:4px; border:1px solid #ccc;">
+    <input type="text" id="adminPollOpt2" placeholder="Option 2 (ex: Saint-Louis)" style="width:100%; padding:8px; margin-bottom:5px; border-radius:4px; border:1px solid #ccc;">
+    <input type="text" id="adminPollOpt3" placeholder="Option 3 (ex: Dakar)" style="width:100%; padding:8px; margin-bottom:8px; border-radius:4px; border:1px solid #ccc;">
+    <button class="btn-gold" onclick="publishNewPoll()" style="width:100%; padding:8px; cursor:pointer;">🚀 Publier le Sondage</button>
+  </div>
+
+  <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+
+  <!-- Formulaire d'Activité / Événement avec Compte à Rebours -->
+  <div>
+    <h4 style="color: var(--primary); margin-bottom: 5px;">⏳ Définir l'Activité / Événement Clé</h4>
+    <input type="text" id="adminEventTitle" placeholder="Nom de l'événement (ex: Examen de Fin de Semestre)" style="width:100%; padding:8px; margin-bottom:5px; border-radius:4px; border:1px solid #ccc;">
+    <label style="font-size:0.85rem; color:#666;">Date et heure limite :</label>
+    <input type="datetime-local" id="adminEventDate" style="width:100%; padding:8px; margin-bottom:8px; border-radius:4px; border:1px solid #ccc;">
+    <button class="btn-gold" onclick="publishNewEventCountdown()" style="width:100%; padding:8px; cursor:pointer;">⏰ Lancer le Compte à Rebours</button>
+  </div>
+</div>
+
 
       <!-- Bouton cloche des notifications avec panneau déroulant intégré -->
       <div style="position: relative; display: inline-block;">
