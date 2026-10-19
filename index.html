@@ -2950,6 +2950,31 @@ if (typeof announcementsContainer === 'undefined') {
     }
     setInterval(updateDynamicCountdown, 1000);
     updateDynamicCountdown();
+    <!-- FENÊTRE POP-UP ADMIN -->
+<div id="adminEngagementModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; justify-content:center; align-items:center; padding:15px; box-sizing:border-box;">
+  <div style="background:#fff; width:100%; max-width:450px; max-height:90vh; overflow-y:auto; border-radius:12px; padding:20px; box-shadow:0 10px 25px rgba(0,0,0,0.3); position:relative;">
+    
+    <!-- Bouton pour fermer la fenêtre (la croix X) -->
+    <button onclick="closeAdminEngagementModal()" style="position:absolute; top:12px; right:15px; background:none; border:none; font-size:1.5rem; cursor:pointer;">✖</button>
+    
+    <!-- Formulaire Sondage -->
+    <h3 style="color:var(--primary); margin-top:0;">📊 Nouveau Sondage</h3>
+    <input type="text" id="adminPollQuestion" placeholder="Question du sondage" style="width:100%; padding:8px; margin-bottom:6px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+    <input type="text" id="adminPollOpt1" placeholder="Option 1" style="width:100%; padding:8px; margin-bottom:6px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+    <input type="text" id="adminPollOpt2" placeholder="Option 2" style="width:100%; padding:8px; margin-bottom:6px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+    <input type="text" id="adminPollOpt3" placeholder="Option 3 (facultatif)" style="width:100%; padding:8px; margin-bottom:10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+    <button class="btn-gold" onclick="publishNewPoll()" style="width:100%; padding:10px; cursor:pointer;">🚀 Publier le Sondage</button>
+
+    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+
+    <!-- Formulaire Compte à Rebours -->
+    <h3 style="color:var(--primary);">⏳ Événement / Compte à Rebours</h3>
+    <input type="text" id="adminEventTitle" placeholder="Nom de l'événement" style="width:100%; padding:8px; margin-bottom:6px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+    <label style="font-size:0.8rem; color:#666;">Date et heure :</label>
+    <input type="datetime-local" id="adminEventDate" style="width:100%; padding:8px; margin-bottom:10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+    <button class="btn-gold" onclick="publishNewEventCountdown()" style="width:100%; padding:10px; cursor:pointer;">⏰ Lancer le Compte à Rebours</button>
+  </div>
+</div>
 
   </script>
   
