@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portail Officiel BDE EHES</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  
+
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-  
+
   <link rel="manifest" href="manifest.json">
   <link rel="manifest" href="./manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -25,16 +25,41 @@
 
    <style>
     :root {
-      --primary: #800020;
-      --primary-dark: #5c0017;
-      --secondary: #D4AF37;
-      --secondary-light: #f3e5ab;
-      --bg: #f8f9fa;
-      --card-bg: #ffffff;
-      --text: #2c3e50;
-      --light-text: #7f8c8d;
-      --danger: #e74c3c;
-    }
+  --primary: #800020;         /* Rouge Bordeaux institutionnel */
+  --primary-dark: #4a0012;    /* Bordeaux sombre pour les dégradés */
+  --secondary: #D4AF37;       /* Doré élégant */
+  --secondary-light: #fdf6e2; /* Doré très clair pour les fonds d'alerte */
+  --bg: #f7f5f2;              /* Fond crème/gris très léger */
+  --card-bg: #ffffff;         /* Blanc pur pour les cartes */
+  --text: #2c3e50;            /* Texte principal lisible */
+  --light-text: #7f8c8d;      /* Texte secondaire */
+  --danger: #c0392b;          /* Rouge alerte */
+}
+
+/* Amélioration de l'effet visuel des cartes pour faire plus "prestige" */
+.card {
+  background: var(--card-bg);
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(128, 0, 32, 0.06);
+  border-top: 4px solid var(--primary);
+  border-left: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+/* Boutons dorés avec effet lumineux au survol */
+.btn-gold {
+  background: linear-gradient(135deg, #D4AF37, #aa8223);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+  border: none;
+}
+.btn-gold:hover {
+  background: linear-gradient(135deg, #c5a059, #966f1b);
+  transform: translateY(-1px);
+}
+
 
     * { box-sizing: border-box; transition: all 0.25s ease; }
     body { font-family: 'Poppins', sans-serif; margin: 0; padding: 0; background-color: var(--bg); color: var(--text); overflow-x: hidden; }
@@ -49,7 +74,7 @@
     .brand h1 { font-size: 1.15rem; margin: 0; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; }
 
     .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
-    
+
     .admin-quick-bar-pc {
       display: flex;
       align-items: center;
@@ -203,13 +228,14 @@
         <button onclick="scrollToAdminSection('secAnnonces')">Annonces</button>
         <button onclick="scrollToAdminSection('secCours')">Cours</button>
         <button onclick="scrollToAdminSection('secPlanning')">Planning</button>
-        <button onclick="scrollToAdminSection('secEtudiants')">Élèves</button>
+        <button onclick="scrollToAdminSection('secEtudiants')">Etudiants
+        </button>
       </div>
 
       <!-- Bouton cloche des notifications avec panneau déroulant intégré -->
       <div style="position: relative; display: inline-block;">
         <button id="notifBtn" onclick="toggleNotificationPanel()">🔔 <span id="notifBadge">0</span></button>
-        
+
         <div id="notifPanelDropdown" style="display: none; position: absolute; right: 0; top: 40px; width: 320px; max-height: 400px; overflow-y: auto; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; color: #2c3e50; text-align: left;">
           <div style="padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
             <strong style="color: var(--primary);">📢 Notifications</strong>
@@ -245,7 +271,30 @@
     </div>
     <div class="drawer-menu">
       <div class="menu-title">Navigation Principale</div>
-      <button onclick="navigateFromDrawer('homeTab')">📢 Accueil & Actualités</button>
+      <button onclick="navigateFromDrawer('homeTab')">📢 
+      <!-- Compte à rebours officiel -->
+      <div class="card" style="border-left: 4px solid var(--secondary); background: #fdfbf7;">
+        <h3>⏳ Compte à rebours officiel</h3>
+        <p id="countdownText" style="font-size: 0.95rem; font-weight: 600; color: var(--primary);">Chargement...</p>
+      </div>
+
+      <!-- Mini-Sondage BDE -->
+      <div class="card" id="pollCard">
+        <h3>📊 Sondage Éclair du BDE</h3>
+        <p id="pollQuestion" style="font-weight: 600; color: #2c3e50; margin-bottom: 12px;">Quel type d'événement as-tu hâte de voir organiser ?</p>
+        
+        <div id="pollOptionsContainer" style="display: flex; flex-direction: column; gap: 8px;">
+          <button class="btn-gold" onclick="submitVote('football')">⚽ Tournoi de Football inter-filières</button>
+          <button class="btn-gold" onclick="submitVote('integration')">🌴 Voyage d'intégration & Sortie détente</button>
+          <button class="btn-gold" onclick="submitVote('conference')">💡 Conférence / Masterclass professionnelle</button>
+        </div>
+
+        <div id="pollResultsContainer" style="margin-top: 15px; font-size: 0.88rem; color: var(--light-text); border-top: 1px dashed #eee; padding-top: 10px;">
+          <span>Total des votes : <strong id="totalVotesCount">0</strong></span>
+        </div>
+      </div>
+
+Accueil & Actualités</button>
       <button onclick="navigateFromDrawer('coursesTab')">📚 Cours & Travaux Dirigés</button>
       <button onclick="navigateFromDrawer('biblioTab')">📖 Bibliothèque</button>
       <button onclick="navigateFromDrawer('scheduleTab')">🗓️ Plannings</button>
@@ -270,11 +319,11 @@
   <div class="container">
     <div id="authSection" class="card">
       <h2 id="authTitle">Espace Connexion</h2>
-      
+
       <form id="authForm" onsubmit="handleAuthSubmit(event)">
         <div id="registerFields" class="hidden">
           <input type="text" id="authName" placeholder="Nom et Prénom">
-          
+
           <label style="font-weight:600; font-size:0.85rem; color:var(--primary); margin-top:8px; display:block;">Type de Compte :</label>
           <select id="authRole" onchange="toggleRoleFields()">
             <option value="student">🎓 Étudiant</option>
@@ -321,7 +370,7 @@
 
         <input type="email" id="authUsername" placeholder="Adresse e-mail valide" required>
         <input type="password" id="authPassword" placeholder="Mot de passe" required>
-        
+
         <button type="submit" id="authSubmitBtn">Se connecter</button>
       </form>
 
@@ -346,7 +395,7 @@
     <div id="coursesTab" class="tab-content card hidden">
       <h2>📚 Ressources Académiques (<Portée id="userLevelDisplay">Non connecté</Portée>)</h2>
       <p style="color: var(--light-text); font-size: 0.88rem;">Accédez aux supports de cours et travaux dirigés de votre niveau et de votre filière.</p>
-      
+
       <div style="margin: 12px 0; display: flex; gap: 8px; flex-wrap: wrap;">
         <select id="filterMajor" onchange="renderCourses()" style="flex:1; margin:0;">
           <option value="ALL">Toutes les Filières</option>
@@ -385,7 +434,7 @@
     <div id="scheduleTab" class="tab-content card hidden">
       <h2>🗓️ Emplois du Temps & Événements</h2>
       <p style="color: var(--light-text); font-size: 0.88rem;">Retrouvez vos plannings de cours et les dates clés des examens et événements BDE.</p>
-      
+
       <h3>📌 Mon Emploi du Temps</h3>
       <div id="scheduleList"></div>
     </div>
@@ -407,7 +456,7 @@
     <div id="suggestTab" class="tab-content card hidden">
       <h2>💡 Boîte à Suggestions</h2>
       <p style="color: var(--light-text); font-size: 0.88rem;">Une idée pour améliorer la vie étudiante ? Partagez-la directement avec le BDE !</p>
-      
+
       <form id="suggestForm" style="margin-top: 12px;">
         <input type="text" id="suggestTitle" placeholder="Sujet / Titre de la suggestion" required>
         <textarea id="suggestContent" rows="4" placeholder="Expliquez votre idée en détails..." required></textarea>
@@ -422,7 +471,7 @@
     <div id="projectsTab" class="tab-content card hidden">
       <h2>📁 Gestion des Projets du BDE</h2>
       <p style="color: var(--light-text); font-size: 0.88rem;">Chaque ministère peut soumettre jusqu'à 3 projets par mois. Validation requise par le Président ou le Vice-président.</p>
-      
+
       <div style="margin: 15px 0; display: flex; gap: 10px; align-items: center;">
         <label style="font-weight:600;">Filtrer par Mois :</label>
         <input type="month" id="projectMonthFilter" onchange="renderProjects()" style="width: auto; margin:0;">
@@ -460,7 +509,7 @@
 
     <div id="adminTab" class="tab-content card hidden">
       <h2>⚙️ Administration BDE</h2>
-      
+
       <div id="adminNotice" class="hidden" style="color: var(--light-text); margin-bottom: 15px;">
         Connectez-vous avec un compte Administrateur pour accéder à cette section.
       </div>
@@ -604,7 +653,7 @@
 <!-- Modal Profil Amélioré -->
 <div id="profileModal" class="modal hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(2px);">
   <div class="modal-content" style="background: #fff; padding: 25px; border-radius: 12px; width: 90%; max-width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); animation: modalFadeIn 0.3s ease;">
-    
+
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid #eaeaea; padding-bottom: 10px;">
       <h3 style="margin: 0; font-size: 1.2rem; color: #2c3e50;">👤 Mon Profil</h3>
       <button onclick="closeProfileModal()" style="background: #f1f2f6; border: none; color: #333; font-weight: bold; cursor: pointer; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">✕</button>
@@ -615,7 +664,7 @@
         <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #4b6584; margin-bottom: 4px;">Nom et Prénom :</label>
         <input type="text" id="profileName" style="width: 100%; padding: 10px; border: 1px solid #dcdde1; border-radius: 6px; font-size: 0.9rem; outline: none;">
       </div>
-      
+
       <div id="profileStudentOnly" style="display: flex; flex-direction: column; gap: 12px;">
         <div>
           <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #4b6584; margin-bottom: 4px;">Filière :</label>
@@ -644,145 +693,145 @@
     </form>
   </div>
 </div>
- 
-  <script>
-    const STUDENT_SECRET_CODE = "EHES2026";
-    const ADMIN_SECRET_CODE = "Bde2026"; 
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyA86vCNL-tF9AVh8-ehKhcEnKjpXmGMQWI",
-      authDomain: "bde-ehes.firebaseapp.com",
-      databaseURL: "https://bde-ehes-default-rtdb.firebaseio.com",
-      projectId: "bde-ehes",
-      storageBucket: "bde-ehes.firebasestorage.app",
-      messagingSenderId: "606167460267",
-      appId: "1:606167460267:web:27ae1e7d66e37cedb80aee",
-      measurementId: "G-KCFWT0H51R"
-    };
+  <script>
+    const STUDENT_SECRET_CODE = "EHES2026";
+    const ADMIN_SECRET_CODE = "Bde2026"; 
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const firebaseConfig = {
+      apiKey: "AIzaSyA86vCNL-tF9AVh8-ehKhcEnKjpXmGMQWI",
+      authDomain: "bde-ehes.firebaseapp.com",
+      databaseURL: "https://bde-ehes-default-rtdb.firebaseio.com",
+      projectId: "bde-ehes",
+      storageBucket: "bde-ehes.firebasestorage.app",
+      messagingSenderId: "606167460267",
+      appId: "1:606167460267:web:27ae1e7d66e37cedb80aee",
+      measurementId: "G-KCFWT0H51R"
+    };
 
-    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+
 if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.isSupported()) {
-  try {
-    const messaging = firebase.messaging();
-    messaging.requestPermission()
-      .then(() => messaging.getToken())
-      .then((token) => console.log("Jeton FCM :", token))
-      .catch((err) => console.warn("Erreur FCM :", err));
+  try {
+    const messaging = firebase.messaging();
+    messaging.requestPermission()
+      .then(() => messaging.getToken())
+      .then((token) => console.log("Jeton FCM :", token))
+      .catch((err) => console.warn("Erreur FCM :", err));
 
-    messaging.onMessage((payload) => {
-      if (payload.notification) {
-        alert(`${payload.notification.title}: ${payload.notification.body}`);
-      }
-    });
-  } catch (err) {
-    console.warn("FCM non initialisé sur cet appareil.");
-  }
+    messaging.onMessage((payload) => {
+      if (payload.notification) {
+        alert(`${payload.notification.title}: ${payload.notification.body}`);
+      }
+    });
+  } catch (err) {
+    console.warn("FCM non initialisé sur cet appareil.");
+  }
 } else {
-  console.log("Firebase Cloud Messaging non supporté sur ce navigateur.");
+  console.log("Firebase Cloud Messaging non supporté sur ce navigateur.");
 }
 
-    let currentProfile = null;
-    let isRegisterMode = false;
-    let unreadNotifCount = 0;
+    let currentProfile = null;
+    let isRegisterMode = false;
+    let unreadNotifCount = 0;
 
-    let usersList = {};
-    let postsList = {};
-    let coursesList = {};
-    let booksList = {};
-    let schedulesList = {};
-    let messagesList = {};
-    let suggestionsList = {};
-    let loginsList = {};
-    let reportsList = {};
-    let notificationsList = {};
-    let projectsList = {};
-    let dmMessagesList = {};
-    let activeDmUser = null;
+    let usersList = {};
+    let postsList = {};
+    let coursesList = {};
+    let booksList = {};
+    let schedulesList = {};
+    let messagesList = {};
+    let suggestionsList = {};
+    let loginsList = {};
+    let reportsList = {};
+    let notificationsList = {};
+    let projectsList = {};
+    let dmMessagesList = {};
+    let activeDmUser = null;
 
-    const savedUser = localStorage.getItem('ehes_user');
-    if (savedUser) {
-      try {
-        currentProfile = JSON.parse(savedUser);
-      } catch(e) {
-        currentProfile = null;
-      }
-    }
+    const savedUser = localStorage.getItem('ehes_user');
+    if (savedUser) {
+      try {
+        currentProfile = JSON.parse(savedUser);
+      } catch(e) {
+        currentProfile = null;
+      }
+    }
 
-    // Écouteurs en temps réel Firebase
-    db.ref('users').on('value', (snapshot) => {
-      usersList = snapshot.val() || {};
-      loadAdminStats();
-      renderAdminStudents();
-      renderDmContacts();
-    });
+    // Écouteurs en temps réel Firebase
+    db.ref('users').on('value', (snapshot) => {
+      usersList = snapshot.val() || {};
+      loadAdminStats();
+      renderAdminStudents();
+      renderDmContacts();
+    });
 
-    db.ref('posts').on('value', (snapshot) => {
-      postsList = snapshot.val() || {};
-      renderAnnouncements();
-      renderAdminPostsManage();
-      updateNotifBadge();
-    });
+    db.ref('posts').on('value', (snapshot) => {
+      postsList = snapshot.val() || {};
+      renderAnnouncements();
+      renderAdminPostsManage();
+      updateNotifBadge();
+    });
 
-    db.ref('notifications').on('value', (snapshot) => {
-      notificationsList = snapshot.val() || {};
-      updateNotifBadge();
-    });
+    db.ref('notifications').on('value', (snapshot) => {
+      notificationsList = snapshot.val() || {};
+      updateNotifBadge();
+    });
 
-    db.ref('courses').on('value', (snapshot) => {
-      coursesList = snapshot.val() || {};
-      renderCourses();
-      renderAdminCoursesManage();
-    });
+    db.ref('courses').on('value', (snapshot) => {
+      coursesList = snapshot.val() || {};
+      renderCourses();
+      renderAdminCoursesManage();
+    });
 
-    db.ref('books').on('value', (snapshot) => {
-      booksList = snapshot.val() || {};
-      renderBiblio();
-      renderAdminBooksManage();
-    });
+    db.ref('books').on('value', (snapshot) => {
+      booksList = snapshot.val() || {};
+      renderBiblio();
+      renderAdminBooksManage();
+    });
 
-    db.ref('schedules').on('value', (snapshot) => {
-      schedulesList = snapshot.val() || {};
-      renderSchedules();
-      renderAdminSchedulesManage();
-    });
+    db.ref('schedules').on('value', (snapshot) => {
+      schedulesList = snapshot.val() || {};
+      renderSchedules();
+      renderAdminSchedulesManage();
+    });
 
-    db.ref('messages').on('value', (snapshot) => {
-      messagesList = snapshot.val() || {};
-      renderChat();
-      cleanOldMessages();
-    });
+    db.ref('messages').on('value', (snapshot) => {
+      messagesList = snapshot.val() || {};
+      renderChat();
+      cleanOldMessages();
+    });
 
-    db.ref('suggestions').on('value', (snapshot) => {
-      suggestionsList = snapshot.val() || {};
-      renderAdminSuggestions();
-    });
+    db.ref('suggestions').on('value', (snapshot) => {
+      suggestionsList = snapshot.val() || {};
+      renderAdminSuggestions();
+    });
 
-    db.ref('reports').on('value', (snapshot) => {
-      reportsList = snapshot.val() || {};
-      renderAdminReports();
-    });
+    db.ref('reports').on('value', (snapshot) => {
+      reportsList = snapshot.val() || {};
+      renderAdminReports();
+    });
 
-    db.ref('logins').on('value', (snapshot) => {
-      loginsList = snapshot.val() || {};
-      loadAdminStats();
-    });
+    db.ref('logins').on('value', (snapshot) => {
+      loginsList = snapshot.val() || {};
+      loadAdminStats();
+    });
 
-    db.ref('projects').on('value', (snapshot) => {
-      projectsList = snapshot.val() || {};
-      renderProjects();
-    });
+    db.ref('projects').on('value', (snapshot) => {
+      projectsList = snapshot.val() || {};
+      renderProjects();
+    });
 
-    db.ref('dm_messages').on('value', (snapshot) => {
-      dmMessagesList = snapshot.val() || {};
-      if (activeDmUser) renderDmConversation(activeDmUser);
-    });
+    db.ref('dm_messages').on('value', (snapshot) => {
+      dmMessagesList = snapshot.val() || {};
+      if (activeDmUser) renderDmConversation(activeDmUser);
+    });
     function toggleSideDrawer() {
   const drawer = document.getElementById('sideDrawer');
   const overlay = document.getElementById('drawerOverlay');
-  
+
   // Vérification de sécurité pour éviter les plantages si un élément manque
   if (!drawer || !overlay) return;
 
@@ -801,10 +850,10 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     function closeSideDrawer() {
       const drawer = document.getElementById('sideDrawer');
       const overlay = document.getElementById('drawerOverlay');
-      
+
       if (drawer) drawer.classList.remove('open');
       if (overlay) overlay.classList.remove('active');
-      
+
       // Restaure le défilement de la page principale
       document.body.style.overflow = '';
     }
@@ -847,7 +896,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
     function handleSwipe() {
       const swipeDistance = touchEndX - touchStartX;
-      
+
       // Swipe vers la droite (ouverture) : doit commencer près du bord gauche (< 40px)
       if (swipeDistance > 80 && touchStartX < 40) {
         const drawer = document.getElementById('sideDrawer');
@@ -868,7 +917,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     function switchTab(tabId, btnElement) {
       // Masquer tous les contenus d'onglets
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      
+
       // Retirer la classe 'active' de tous les boutons de navigation
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
@@ -926,7 +975,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
    function toggleAuthMode(e) {
   if (e) e.preventDefault();
-  
+
   const authTitle = document.getElementById('authTitle');
   const registerFields = document.getElementById('registerFields');
   const authSubmitBtn = document.getElementById('authSubmitBtn');
@@ -954,12 +1003,12 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 }
  window.handleAuthSubmit = function(e) {
       if (e) e.preventDefault();
-      
+
       const emailInput = document.getElementById('authUsername');
       const passwordInput = document.getElementById('authPassword');
-      
+
       if (!emailInput || !passwordInput) return;
-      
+
       const email = emailInput.value.trim();
       const password = passwordInput.value.trim();
 
@@ -1046,7 +1095,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       } else {
         // Mode Connexion propre
         console.log("Envoi à Firebase - Email:", email, "Mot de passe length:", password.length);
-        
+
         firebase.auth().signInWithEmailAndPassword(email, password)
           .then((userCredential) => {
             const authUser = userCredential.user;
@@ -1074,7 +1123,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
               };
 
               localStorage.setItem('ehes_user', JSON.stringify(currentProfile));
-              
+
               // Lancement des notifications push si la fonction existe
               if (typeof initPushNotifications === 'function') {
                   initPushNotifications();
@@ -1082,9 +1131,9 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
               if (typeof registerLogin === 'function') registerLogin();
               if (typeof checkUserSession === 'function') checkUserSession();
-              
+
               alert("Connexion réussie ! Bienvenue " + currentProfile.name);
-              
+
               if (typeof switchTab === 'function') switchTab('homeTab');
               if (typeof updateUI === 'function') updateUI();
             });
@@ -1094,14 +1143,14 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
           });
       }
 };
-    
+
    function registerLogin() {
       if (!currentProfile) return;
-      
+
       const today = new Date().toISOString().split('T')[0];
       // Sécurisation de la clé utilisateur pour Firebase Realtime Database (pas de '.', '#', '$', '[', ']', '/')
       const safeKey = (currentProfile.email || currentProfile.username).replace(/[.$#[\]/]/g, "_");
-      
+
       // Utilisation d'un chemin structuré par date et par utilisateur (évite les doublons pour un même jour)
       db.ref(`logins/\({today}/\){safeKey}`).set({
         name: currentProfile.name || 'Inconnu',
@@ -1119,12 +1168,12 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         firebase.auth().signOut().then(() => {
           currentProfile = null;
           localStorage.removeItem('ehes_user');
-          
+
           // Vérification de l'existence de la fonction checkUserSession avant de l'appeler
           if (typeof checkUserSession === 'function') {
             checkUserSession();
           }
-          
+
           alert("Vous avez été déconnecté avec succès.");
           if (typeof switchTab === 'function') {
             switchTab('homeTab');
@@ -1203,7 +1252,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     if (authSection) authSection.classList.remove('hidden');
     if (logoutSection) logoutSection.classList.add('hidden');
     if (profileBtn) profileBtn.classList.add('hidden');
-    
+
     if (adminPcBar) adminPcBar.classList.add('hidden');
     if (drawerAdminSection) drawerAdminSection.classList.add('hidden');
     if (adminProjectsTabBtn) adminProjectsTabBtn.classList.add('hidden');
@@ -1234,7 +1283,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
     function formatDriveLink(url) {
       if (!url) return '#';
       url = url.trim();
-      
+
       // Gestion robuste des liens Google Drive (gère aussi les paramètres additionnels après l'ID)
       if (url.includes('drive.google.com') && url.includes('/d/')) {
         try {
@@ -1252,13 +1301,13 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
     function openProfileModal() {
       if (!currentProfile) return;
-      
+
       const profileNameInput = document.getElementById('profileName');
       const profileStudentOnly = document.getElementById('profileStudentOnly');
       const profileModal = document.getElementById('profileModal');
-      
+
       if (profileNameInput) profileNameInput.value = currentProfile.name || '';
-      
+
       if (profileStudentOnly) {
         if (currentProfile.role === 'admin') {
           profileStudentOnly.classList.add('hidden');
@@ -1266,12 +1315,12 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
           profileStudentOnly.classList.remove('hidden');
           const profileMajor = document.getElementById('profileMajor');
           const profileLevel = document.getElementById('profileLevel');
-          
+
           if (profileMajor) profileMajor.value = currentProfile.major || '';
           if (profileLevel) profileLevel.value = currentProfile.level || '';
         }
       }
-      
+
       if (profileModal) profileModal.classList.remove('hidden');
     }
 
@@ -1295,7 +1344,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         if (currentProfile.role !== 'admin') {
           const profileMajor = document.getElementById('profileMajor');
           const profileLevel = document.getElementById('profileLevel');
-          
+
           if (profileMajor) currentProfile.major = profileMajor.value;
           if (profileLevel) currentProfile.level = profileLevel.value;
         }
@@ -1321,7 +1370,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         coursesContainer.innerHTML = '<p style="color:var(--light-text);">Connectez-vous pour voir vos cours.</p>';
         return;
       }
-      
+
       // Sécurité si coursesList (l'objet global de données) n'est pas défini
       const rawCourses = typeof coursesList !== 'undefined' ? coursesList : {};
       const allCourses = Object.values(rawCourses);
@@ -1366,11 +1415,11 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       for (let major in grouped) {
         html += `<div class="level-group" style="margin-bottom: 20px;">`;
         html += `<div class="level-title" style="font-weight: bold; margin-bottom: 10px; color: var(--primary);">📂 ${major}</div>`;
-        
+
         grouped[major].forEach(c => {
           const downloadUrl = typeof formatDriveLink === 'function' ? formatDriveLink(c.url) : (c.url || '#');
           const courseTitle = c.title || 'Document sans titre';
-          
+
           html += `
             <div style="background:#fdfbf7; padding:12px; margin-bottom:10px; border-left:4px solid var(--secondary); border-radius:8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
               <strong style="color: #2c3e50;">${courseTitle}</strong><br>
@@ -1485,7 +1534,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
 
       const rawPosts = typeof postsList !== 'undefined' ? postsList : {};
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-      
+
       const allPosts = Object.values(rawPosts).filter(p => p.timestamp && (Date.now() - p.timestamp) < ONE_WEEK_MS);
       allPosts.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -1566,7 +1615,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
       const recentPosts = Object.values(rawPosts).filter(p => p.timestamp && (Date.now() - p.timestamp) < ONE_WEEK_MS);
-      
+
       const userNotifs = Object.values(rawNotifs).filter(n => {
         if (!n.timestamp || (Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
         if (n.target === 'all') return true;
@@ -1576,7 +1625,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       });
 
       const totalNotifs = recentPosts.length + userNotifs.length;
-      
+
       // Variable globale unreadNotifCount supposée définie ailleurs
       if (typeof unreadNotifCount !== 'undefined') {
         if (unreadNotifCount === 0 && totalNotifs > 0) {
@@ -1610,7 +1659,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
       const recentPosts = Object.values(rawPosts)
         .filter(p => p.timestamp && (Date.now() - p.timestamp) < ONE_WEEK_MS)
         .map(p => ({ title: p.title || 'Annonce', content: p.content || '', timestamp: p.timestamp, type: 'post' }));
-      
+
       const userNotifs = Object.values(rawNotifs)
         .filter(n => {
           if (!n.timestamp || (Date.now() - n.timestamp) >= ONE_WEEK_MS) return false;
@@ -1620,7 +1669,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
           return false;
         })
         .map(n => ({ title: n.title || 'Notification', content: n.body || '', timestamp: n.timestamp, type: 'notif' }));
-      
+
       const allItems = [...recentPosts, ...userNotifs];
       allItems.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -1675,7 +1724,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         if (!text) return;
 
         const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
+
         db.ref('messages').push({
           sender: currentProfile.name || 'Anonyme',
           level: currentProfile.level || 'N/A',
@@ -1704,7 +1753,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         chatBox.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:20px;">Aucun message pour le moment.</p>';
         return;
       }
-      
+
       let html = '';
       const isAdmin = (currentProfile && currentProfile.role === 'admin');
 
@@ -1751,7 +1800,7 @@ if (typeof firebase !== 'undefined' && firebase.messaging && firebase.messaging.
         });
       }
     }
-   
+
 // Écoute en temps réel sur la base de données Firebase
 db.ref('messages').on('value', (snapshot) => {
   messagesList = snapshot.val() || {};
@@ -1845,7 +1894,7 @@ db.ref('messages').on('value', (snapshot) => {
       const rawProjects = typeof projectsList !== 'undefined' ? projectsList : {};
       const allProjects = Object.values(rawProjects);
       const myProjectsThisMonth = allProjects.filter(p => p.authorId === currentProfile.id && p.month === month);
-      
+
       if (myProjectsThisMonth.length >= 3) {
         alert("⚠️ Votre ministère a déjà atteint la limite de 3 projets pour ce mois !");
         return;
@@ -1890,7 +1939,7 @@ db.ref('messages').on('value', (snapshot) => {
 
       const rawProjects = typeof projectsList !== 'undefined' ? projectsList : {};
       let arr = Object.entries(rawProjects);
-      
+
       if (filterMonth) {
         arr = arr.filter(([k, p]) => p.month === filterMonth);
       }
@@ -1984,12 +2033,12 @@ db.ref('messages').on('value', (snapshot) => {
 
       const rawDms = typeof dmMessagesList !== 'undefined' ? dmMessagesList : {};
       const msgs = Object.values(rawDms);
-      
+
       const filtered = msgs.filter(m => 
         (m.sender === currentProfile.id && m.receiver === otherUserId) || 
         (m.sender === otherUserId && m.receiver === currentProfile.id)
       );
-      
+
       filtered.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
       let html = '';
@@ -2044,11 +2093,11 @@ db.ref('messages').on('value', (snapshot) => {
       const usersArray = Object.values(rawUsers);
       const statInscritsEl = document.getElementById('statInscrits');
       const statConnectesEl = document.getElementById('statConnectes');
-      
+
       if (statInscritsEl) {
         statInscritsEl.innerText = usersArray.length;
       }
-      
+
       if (statConnectesEl) {
         const today = new Date().toISOString().split('T')[0];
         const loginsArray = Object.values(rawLogins);
@@ -2063,7 +2112,7 @@ db.ref('messages').on('value', (snapshot) => {
 
       const rawReports = typeof reportsList !== 'undefined' ? reportsList : {};
       const entries = Object.entries(rawReports);
-      
+
       if (!entries.length) {
         container.innerHTML = '<p style="color:var(--light-text); text-align:center; padding:15px;">Aucun signalement en attente.</p>';
         return;
@@ -2095,7 +2144,7 @@ db.ref('messages').on('value', (snapshot) => {
         const promises = [];
         if (msgKey) promises.push(db.ref('messages/' + msgKey).remove());
         if (repKey) promises.push(db.ref('reports/' + repKey).remove());
-        
+
         Promise.all(promises).catch(err => {
           console.error("Erreur suppression signalement :", err);
         });
@@ -2130,7 +2179,7 @@ db.ref('messages').on('value', (snapshot) => {
           const title = lvl === 'ADMIN' ? '⚙️ Administrateurs BDE' : (lvl === 'Alumni' ? '🎓 Alumni (Anciens Élèves)' : `🎓 Niveau ${lvl}`);
           html += `<div class="level-group" style="margin-bottom:15px;">`;
           html += `<div class="level-title" style="font-weight:600; color:var(--primary); margin-bottom:8px; border-bottom:2px solid var(--secondary); padding-bottom:4px;">${title} (${list.length})</div>`;
-          
+
           list.forEach(([key, st]) => {
             const name = st.name || 'Inconnu';
             const username = st.username || '';
@@ -2406,7 +2455,7 @@ db.ref('messages').on('value', (snapshot) => {
         if (!checkAdminAuth()) return;
         const titleInput = document.getElementById('adminNotifTitle');
         const bodyInput = document.getElementById('adminNotifBody');
-        
+
         const title = titleInput ? titleInput.value.trim() : '';
         const body = bodyInput ? bodyInput.value.trim() : '';
 
@@ -2667,7 +2716,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Écouteurs de soumission / publication (déjà gérés en partie dans tes fonctions, 
   // mais on s'assure ici que les boutons déclenchent bien les actions si ce n'est pas fait)
-  
+
   // Note : Tes boutons 'sendGlobalNotifBtn', 'publishPostBtn', 'publishCourseBtn', 
   // 'publishBookBtn', et 'publishSchedBtn' écoutent déjà le clic grâce aux addEventListener 
   // que tu as définis dans tes blocs précédents !
@@ -2704,7 +2753,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Écouteurs de soumission / publication (déjà gérés en partie dans tes fonctions, 
   // mais on s'assure ici que les boutons déclenchent bien les actions si ce n'est pas fait)
-  
+
   // Note : Tes boutons 'sendGlobalNotifBtn', 'publishPostBtn', 'publishCourseBtn', 
   // 'publishBookBtn', et 'publishSchedBtn' écoutent déjà le clic grâce aux addEventListener 
   // que tu as définis dans tes blocs précédents !
@@ -2715,6 +2764,78 @@ document.addEventListener('DOMContentLoaded', () => {
 if (typeof announcementsContainer === 'undefined') {
   var announcementsContainer = null;
 }
+    // --- COMPTE À REBOURS ---
+    function updateCountdown() {
+      const countdownEl = document.getElementById('countdownText');
+      if (!countdownEl) return;
+
+      const targetDate = new Date('2026-12-15T08:00:00').getTime();
+      const now = new Date().getTime();
+      const difference = targetDate - now;
+
+      if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        countdownEl.innerHTML = `🔥 Plus que <strong style="font-size:1.1rem; color:var(--primary);">${days} jours</strong> et ${hours} heures avant les échéances importantes !`;
+      } else {
+        countdownEl.innerHTML = "🎉 C'est la période des examens ou des vacances ! Bon courage à tous.";
+      }
+    }
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+
+    // --- MINI-SONDAGE FIREBASE ---
+    function submitVote(optionKey) {
+      if (!currentProfile) {
+        alert("Vous devez être connecté pour participer au sondage.");
+        return;
+      }
+
+      const safeUserId = currentProfile.id.replace(/[.$#[\]/]/g, "_");
+
+      db.ref(`polls/current_poll/votes/${safeUserId}`).set({
+        choice: optionKey,
+        userName: currentProfile.name || 'Étudiant',
+        timestamp: Date.now()
+      }).then(() => {
+        alert("✅ Merci ! Votre vote a bien été pris en compte.");
+      }).catch(err => {
+        console.error("Erreur lors du vote :", err);
+        alert("Impossible d'enregistrer votre vote pour le moment.");
+      });
+    }
+
+    db.ref('polls/current_poll/votes').on('value', (snapshot) => {
+      const votesData = snapshot.val() || {};
+      const votesArray = Object.values(votesData);
+      
+      const totalVotes = votesArray.length;
+      const totalVotesEl = document.getElementById('totalVotesCount');
+      if (totalVotesEl) totalVotesEl.innerText = totalVotes;
+
+      let counts = { football: 0, integration: 0, conference: 0 };
+      votesArray.forEach(v => {
+        if (counts[v.choice] !== undefined) {
+          counts[v.choice]++;
+        }
+      });
+
+      const resultsContainer = document.getElementById('pollResultsContainer');
+      if (resultsContainer && totalVotes > 0) {
+        const pFoot = Math.round((counts.football / totalVotes) * 100);
+        const pInteg = Math.round((counts.integration / totalVotes) * 100);
+        const pConf = Math.round((counts.conference / totalVotes) * 100);
+
+        resultsContainer.innerHTML = `
+          <div style="font-weight:600; margin-bottom:5px; color:var(--primary);">📊 Résultats en direct (${totalVotes} votes) :</div>
+          <div style="font-size:0.82rem; margin-bottom:3px;">⚽ Football : ${counts.football} votes (${pFoot}%)</div>
+          <div style="font-size:0.82rem; margin-bottom:3px;">🌴 Intégration : ${counts.integration} votes (${pInteg}%)</div>
+          <div style="font-size:0.82rem;">💡 Conférence : ${counts.conference} votes (${pConf}%)</div>
+        `;
+      }
+    });
+
   </script>
+  
 </body>
 </html>
