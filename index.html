@@ -369,6 +369,20 @@ Accueil & Actualités</button>
       <div class="card">
         <h2>📢 Annonces &amp; Actualités récentes</h2>
         <div id="announcementsList"></div>
+        <!-- Bloc Sondage dans l'onglet Annonces -->
+<div class="card" id="pollCard" style="border-left: 4px solid var(--secondary); background: #fff; margin-bottom: 20px;">
+  <h3 style="color: var(--primary); margin-top: 0;">📊 Sondage Éclair du BDE</h3>
+  <p id="pollQuestion" style="font-weight: 600; color: #2c3e50; margin-bottom: 12px;">Chargement du sondage...</p>
+  
+  <!-- Conteneur des boutons d'options -->
+  <div id="pollOptionsContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+
+  <!-- Résultats en direct -->
+  <div id="pollResultsContainer" style="margin-top: 15px; font-size: 0.88rem; color: var(--light-text); border-top: 1px dashed #eee; padding-top: 10px;">
+    <span>Total des votes : <strong id="totalVotesCount">0</strong></span>
+  </div>
+</div>
+
       </div>
     </div>
 
@@ -525,6 +539,15 @@ Accueil & Actualités</button>
         <hr style="margin: 18px 0; border: none; border-top: 1px solid #eee;">
 
         <div id="secAnnonces">
+            <div class="card" style="border-left: 4px solid var(--primary);">
+  <h3>📊 Publier un Sondage (Onglet Annonces)</h3>
+  <input type="text" id="adminPollQuestion" placeholder="Question (ex: Quel sport pour la journée d'intégration ?)" style="width:100%; padding:8px; margin-bottom:6px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+  <input type="text" id="adminPollOpt1" placeholder="Option 1 (ex: Football)" style="width:100%; padding:8px; margin-bottom:6px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+  <input type="text" id="adminPollOpt2" placeholder="Option 2 (ex: Basketball)" style="width:100%; padding:8px; margin-bottom:6px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+  <input type="text" id="adminPollOpt3" placeholder="Option 3 (facultatif)" style="width:100%; padding:8px; margin-bottom:10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+  <button class="btn-gold" onclick="publishNewPoll()" style="width:100%; padding:10px; cursor:pointer; font-weight:600;">🚀 Lancer le Sondage</button>
+</div>
+
           <h3>📢 Publier une Annonce</h3>
           <input type="text" id="postTitle" placeholder="Titre de l'annonce">
           <textarea id="postContent" rows="3" placeholder="Contenu de l'annonce..."></textarea>
@@ -2460,11 +2483,17 @@ db.ref('messages').on('value', (snapshot) => {
       });
     }
 
-    // --- PUBLICATION D'ANNONCES (POSTS) ---
+            // --- PUBLICATION D'ANNONCES (POSTS) COMPLÈTE ---
     const publishPostBtn = document.getElementById('publishPostBtn');
+    
     if (publishPostBtn) {
       publishPostBtn.addEventListener('click', () => {
-        if (!checkAdminAuth()) return;
+        // Vérification Admin
+        if (typeof checkAdminAuth === 'function' && !checkAdminAuth()) {
+          alert("🔒 Action bloquée : Vous n'êtes pas connecté avec un compte Administrateur !");
+          return;
+        }
+
         const titleInput = document.getElementById('postTitle');
         const contentInput = document.getElementById('postContent');
         const fileInput = document.getElementById('postFileInput');
@@ -2474,10 +2503,11 @@ db.ref('messages').on('value', (snapshot) => {
         const file = fileInput && fileInput.files ? fileInput.files[0] : null;
 
         if (!title || !content) {
-          alert("Veuillez saisir un titre et un contenu.");
+          alert("⚠️ Veuillez saisir un titre et un contenu pour l'annonce.");
           return;
         }
 
+        // Traitement du fichier / de l'image
         if (file) {
           if (file.type.startsWith('image/')) {
             compressAndSaveImage(file, (compressedData) => {
@@ -2496,6 +2526,7 @@ db.ref('messages').on('value', (snapshot) => {
       });
     }
 
+    // Fonction de compression d'image
     function compressAndSaveImage(file, callback) {
       const reader = new FileReader();
       reader.onload = function (e) {
@@ -2526,23 +2557,31 @@ db.ref('messages').on('value', (snapshot) => {
       reader.readAsDataURL(file);
     }
 
+    // Fonction d'enregistrement Firebase (Celle qui manquait !)
     function savePost(title, content, mediaData, mediaType) {
+      if (typeof db === 'undefined') {
+        alert("Erreur : La base de données n'est pas accessible.");
+        return;
+      }
+
       db.ref('posts').push({
-        title,
-        content,
-        mediaData,
-        mediaType,
+        title: title,
+        content: content,
+        mediaData: mediaData,
+        mediaType: mediaType,
         timestamp: Date.now()
       }).then(() => {
-        alert("Annonce optimisée et publiée en ligne !");
+        alert("📢 Annonce publiée avec succès !");
         const t = document.getElementById('postTitle'); if(t) t.value = '';
         const c = document.getElementById('postContent'); if(c) c.value = '';
         const f = document.getElementById('postFileInput'); if(f) f.value = '';
       }).catch(err => {
         console.error("Erreur publication post :", err);
-        alert("Erreur lors de la publication de l'annonce.");
+        alert("Erreur lors de la publication de l'annonce : " + err.message);
       });
     }
+
+
 
     // --- PUBLICATION DE COURS ---
     const publishCourseBtn = document.getElementById('publishCourseBtn');
@@ -2764,7 +2803,107 @@ if (typeof announcementsContainer === 'undefined') {
     setInterval(updateCountdown, 1000);
     updateCountdown();
 
+    // --- 1. PUBLICATION DU SONDAGE PAR L'ADMIN ---
+    function publishNewPoll() {
+      if (typeof checkAdminAuth === 'function' && !checkAdminAuth()) {
+        alert("🔒 Accès refusé : Seul l'Admin peut créer un sondage.");
+        return;
+      }
+
+      const question = document.getElementById('adminPollQuestion').value.trim();
+      const opt1 = document.getElementById('adminPollOpt1').value.trim();
+      const opt2 = document.getElementById('adminPollOpt2').value.trim();
+      const opt3 = document.getElementById('adminPollOpt3').value.trim();
+
+      if (!question || !opt1 || !opt2) {
+        alert("Veuillez saisir une question et au moins deux options.");
+        return;
+      }
+
+      db.ref('polls/current_poll').set({
+        question: question,
+        options: { opt1, opt2, opt3 },
+        votes: null // Réinitialise les votes
+      }).then(() => {
+        alert("✅ Sondage publié dans l'onglet Annonces !");
+        document.getElementById('adminPollQuestion').value = '';
+        document.getElementById('adminPollOpt1').value = '';
+        document.getElementById('adminPollOpt2').value = '';
+        document.getElementById('adminPollOpt3').value = '';
+      }).catch(err => {
+        alert("Erreur lors de la publication : " + err.message);
+      });
+    }
+
+    // --- 2. AFFICHAGE DU SONDAGE & RÉSULTATS DANS L'ONGLET ANNONCES ---
+    db.ref('polls/current_poll').on('value', (snapshot) => {
+      const poll = snapshot.val();
+      const card = document.getElementById('pollCard');
+      if (!card) return;
+
+      if (!poll || !poll.question) {
+        card.style.display = 'none'; // Masque le sondage s'il n'y en a pas d'actif
+        return;
+      }
+
+      card.style.display = 'block';
+
+      // Affichage de la question
+      const questionEl = document.getElementById('pollQuestion');
+      if (questionEl) questionEl.innerText = poll.question;
+
+      // Affichage des options de vote
+      const optionsContainer = document.getElementById('pollOptionsContainer');
+      if (optionsContainer && poll.options) {
+        let html = '';
+        if (poll.options.opt1) html += `<button class="btn-gold" style="width:100%; margin-bottom:5px;" onclick="submitVote('opt1')">📌 ${poll.options.opt1}</button>`;
+        if (poll.options.opt2) html += `<button class="btn-gold" style="width:100%; margin-bottom:5px;" onclick="submitVote('opt2')">📌 ${poll.options.opt2}</button>`;
+        if (poll.options.opt3) html += `<button class="btn-gold" style="width:100%; margin-bottom:5px;" onclick="submitVote('opt3')">📌 ${poll.options.opt3}</button>`;
+        optionsContainer.innerHTML = html;
+      }
+
+      // Calcul des résultats
+      const votes = poll.votes ? Object.values(poll.votes) : [];
+      const total = votes.length;
+      const totalEl = document.getElementById('totalVotesCount');
+      if (totalEl) totalEl.innerText = total;
+
+      let counts = { opt1: 0, opt2: 0, opt3: 0 };
+      votes.forEach(v => { if (counts[v.choice] !== undefined) counts[v.choice]++; });
+
+      const resultsContainer = document.getElementById('pollResultsContainer');
+      if (resultsContainer && total > 0 && poll.options) {
+        resultsContainer.innerHTML = `
+          <div style="font-weight:600; margin-bottom:5px; color:var(--primary);">📊 Résultats (${total} votes) :</div>
+          <div style="font-size:0.82rem; margin-bottom:3px;">${poll.options.opt1} : ${counts.opt1} vote(s) (${Math.round((counts.opt1/total)*100)}%)</div>
+          <div style="font-size:0.82rem; margin-bottom:3px;">${poll.options.opt2} : ${counts.opt2} vote(s) (${Math.round((counts.opt2/total)*100)}%)</div>
+          ${poll.options.opt3 ? `<div style="font-size:0.82rem;">${poll.options.opt3} : ${counts.opt3} vote(s) (${Math.round((counts.opt3/total)*100)}%)</div>` : ''}
+        `;
+      }
+    });
+
+    // --- 3. ENREGISTREMENT DU VOTE D'UN ÉTUDIANT ---
+    function submitVote(optionKey) {
+      if (typeof currentProfile === 'undefined' || !currentProfile) {
+        alert("Veuillez vous connecter pour participer au sondage.");
+        return;
+      }
+
+      const safeUserId = currentProfile.id.replace(/[.$#[\]/]/g, "_");
+
+      db.ref(`polls/current_poll/votes/${safeUserId}`).set({
+        choice: optionKey,
+        userName: currentProfile.name || 'Étudiant',
+        timestamp: Date.now()
+      }).then(() => {
+        alert("✅ Votre vote a bien été enregistré !");
+      }).catch(err => {
+        console.error("Erreur vote :", err);
+        alert("Impossible d'enregistrer le vote.");
+      });
+    }
+
   </script>
   
 </body>
-  </html>
+</html>
